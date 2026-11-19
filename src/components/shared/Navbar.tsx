@@ -27,12 +27,12 @@ function getDashboardHref(role?: string | null) {
   return "/dashboard";
 }
 
-// Nav links: Home removed, Browse Menu + Dashboard + Be Partner
+// Nav links: Home removed, Browse Menu + Dashboard + Partnership
 function getNavLinks(role?: string | null) {
   return [
     { label: "Browse Menu", href: "/menu" },
     { label: "Dashboard", href: getDashboardHref(role) },
-    { label: "Be Partner", href: "/be-partner" },
+    { label: "Partnership", href: "/partnership" },
   ];
 }
 

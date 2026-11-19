@@ -15,7 +15,7 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
-  
+
 } from "lucide-react";
 import { FEATURED_MENU_ITEMS, FeaturedMenuItem } from "@/data/featured-menu";
 import { useWishlist } from "@/hooks/use-wishlist";
@@ -118,7 +118,7 @@ export default function FeaturedMenuItems() {
             Interactive 3D Carousel Cylinder. Click any side card to rotate it to front, or click the center card for full details.
           </p>
 
-          
+
         </div>
 
         {/* ── 3D Rotating Cylinder Carousel ── */}
