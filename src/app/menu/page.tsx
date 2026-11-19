@@ -586,14 +586,6 @@ export default function MenuPage() {
   const handleViewDetails = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isLoggedIn) {
-      toast.add({
-        title: "Please sign in to view product details",
-        type: "info",
-      });
-      router.push("/sign-in");
-      return;
-    }
     router.push(`/menu/${id}`);
   };
 

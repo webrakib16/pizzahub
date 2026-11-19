@@ -10,16 +10,18 @@ import {
   LogOut,
   Menu,
   Settings,
+  ShoppingCart,
   User,
   X,
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { signOut, useSession } from "@/lib/auth-client";
+import { useCart } from "@/hooks/use-cart";
 
 // Navbar er link gulo ekhane list kora — pore easily change kora jabe
 const navLinks = [
-  { label: "Home", href: "#" },
-  { label: "Browse Menu", href: "#" },
+  { label: "Home", href: "/" },
+  { label: "Browse Menu", href: "/menu" },
 ];
 
 // Role onujayi dashboard er path
@@ -43,6 +45,7 @@ function getInitials(name?: string | null) {
 export default function Navbar() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
+  const { totalCount } = useCart();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -133,7 +136,7 @@ export default function Navbar() {
     <header className="relative z-50 border-b border-white/5 bg-zinc-950/95 backdrop-blur">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
         {/* Logo: icon image + text lockup (source logo er white bg remove kora) */}
-        <Link href="#" className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <Link href="/" className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <Image
             src="/assets/logo-icon.png"
             alt="PizzaHub icon"
@@ -176,8 +179,22 @@ export default function Navbar() {
           ))}
         </ul>
 
-        {/* Right side: logged out -> Sign In + Sign Up | logged in -> profile dropdown */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Right side: Cart Icon + Auth / User profile */}
+        <div className="flex items-center gap-2.5 sm:gap-3.5">
+          {/* Cart Icon with Live Count Badge — links to /cart */}
+          <Link
+            href="/cart"
+            aria-label="View shopping cart"
+            className="relative flex size-9 sm:size-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-zinc-300 hover:text-white hover:border-orange-500/50 hover:bg-white/[0.08] transition-all cursor-pointer shrink-0"
+          >
+            <ShoppingCart className="size-4.5 sm:size-5" />
+            {totalCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-gradient-to-r from-red-600 to-orange-500 text-[10px] font-black text-white shadow-md shadow-orange-950/60 animate-in zoom-in-75 duration-200">
+                {totalCount > 99 ? "99+" : totalCount}
+              </span>
+            )}
+          </Link>
+
           {/* Session load howar somoy choto skeleton (jate Sign In button flicker na kore) */}
           {isPending && (
             <span

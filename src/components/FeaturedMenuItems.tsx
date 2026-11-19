@@ -11,7 +11,6 @@ import {
   Tag,
   X,
   ShoppingBag,
-  Sparkles,
   ArrowRight,
   ChevronLeft,
   ChevronRight,

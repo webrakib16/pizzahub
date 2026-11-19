@@ -22,6 +22,10 @@ import {
   Plus,
   Home,
   Utensils,
+  AlertCircle,
+  ThumbsUp,
+  MessageSquare,
+  Award,
 } from "lucide-react";
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/Footer";
@@ -29,6 +33,7 @@ import { MENU_ITEMS } from "@/data/menu-data";
 import { FEATURED_MENU_ITEMS } from "@/data/featured-menu";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
+import { addToCart } from "@/hooks/use-cart";
 
 // ─── Customization Pricing Rules ──────────────────────────────────────────────
 const SIZE_OPTIONS = [
@@ -43,6 +48,46 @@ const CRUST_OPTIONS = [
   { label: "Cheese Burst", value: "cheese-burst", priceOffset: 100 },
   { label: "Stuffed Crust", value: "stuffed", priceOffset: 120 },
 ] as const;
+
+// ─── Sample Customer Reviews ──────────────────────────────────────────────────
+const SAMPLE_REVIEWS = [
+  {
+    id: "r-1",
+    author: "Tanvir Ahmed",
+    rating: 5,
+    date: "2 days ago",
+    size: 'Medium (10")',
+    crust: "Cheese Burst",
+    comment:
+      "Hands down one of the best pizzas I've had in a long time! The cheese burst crust was piping hot and delightfully gooey. Arrived within 30 minutes in top condition.",
+    verified: true,
+    likes: 18,
+  },
+  {
+    id: "r-2",
+    author: "Nusrat Jahan",
+    rating: 5,
+    date: "1 week ago",
+    size: 'Large (12")',
+    crust: "Classic",
+    comment:
+      "Generous premium toppings, rich marinara sauce, and perfect crust bake. The whole family loved it for our Friday dinner feast!",
+    verified: true,
+    likes: 14,
+  },
+  {
+    id: "r-3",
+    author: "Fahim Shahriar",
+    rating: 4,
+    date: "2 weeks ago",
+    size: 'Regular (8")',
+    crust: "Thin Crust",
+    comment:
+      "Crispy base and well-balanced seasoning. Very satisfied with the quick delivery and hygiene standards of PizzaHub.",
+    verified: true,
+    likes: 9,
+  },
+];
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -62,40 +107,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
 
   const currentProduct = menuItem || (featuredItem as (typeof MENU_ITEMS)[0] | undefined);
 
-  // Fallback / default data if matching item is missing
-  const item = useMemo(() => {
-    return {
-      id: currentProduct?.id || id,
-      name: currentProduct?.name || "Classic Pepperoni Pizza",
-      category: currentProduct?.category || "Classic Pizzas",
-      categorySlug: currentProduct?.categorySlug || "classic",
-      price: currentProduct?.price || 550,
-      restaurantName: currentProduct?.restaurantName || "PizzaHub Outlet",
-      location: currentProduct?.location || "Rajshahi, Bangladesh",
-      description:
-        currentProduct?.description ||
-        "A timeless favorite with rich tomato sauce, premium pepperoni, and melted mozzarella on a perfectly baked crust.",
-      image:
-        currentProduct?.image ||
-        "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=1000&auto=format&fit=crop&q=80",
-      rating: currentProduct?.rating || 4.8,
-      reviews: currentProduct?.reviews || 1256,
-      badge: currentProduct?.badge || "Bestseller",
-    };
-  }, [currentProduct, id]);
-
-  // ── Gallery Images (5 high-resolution photography assets) ─────────────────
-  const galleryImages = useMemo(() => {
-    return [
-      item.image,
-      "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1000&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1000&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1604382355076-af4b0eb60143?w=1000&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=1000&auto=format&fit=crop&q=80",
-    ];
-  }, [item.image]);
-
-  // ── Interactive UI States ─────────────────────────────────────────────────
+  // ── Interactive UI States (Unconditional Hooks for React Rules of Hooks) ─
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>("regular");
@@ -106,11 +118,89 @@ export default function MenuItemDetailPage({ params }: PageProps) {
 
   // ── Related Products (3 distinct pizza cards) ─────────────────────────────
   const relatedPizzas = useMemo(() => {
-    const others = MENU_ITEMS.filter((p) => p.id !== item.id && p.slug !== item.id);
+    if (!currentProduct) return [];
+    const others = MENU_ITEMS.filter((p) => p.id !== currentProduct.id && p.slug !== currentProduct.id);
     return others.slice(0, 3);
-  }, [item.id]);
+  }, [currentProduct]);
 
-  // ── Dynamic Pricing Calculation ───────────────────────────────────────────
+  // ── Invalid Item ID Handling: Show Appropriate Error Screen ──────────────
+  if (!currentProduct) {
+    return (
+      <div className="min-h-screen bg-[#09090b] text-white flex flex-col selection:bg-orange-500 selection:text-white">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center py-20 px-4">
+          <div className="max-w-md w-full text-center space-y-6 rounded-3xl bg-[#141416] p-8 sm:p-10 border border-white/10 shadow-2xl">
+            <div className="size-20 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto text-3xl font-black shadow-inner">
+              🍕
+            </div>
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold">
+                <AlertCircle className="size-3.5" />
+                <span>Error 404: Not Found</span>
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                Menu Item Not Found
+              </h1>
+              <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed">
+                The pizza or menu item with ID <span className="text-orange-400 font-mono font-bold">&ldquo;{id}&rdquo;</span> could not be found. It may have been retired or the link is incorrect.
+              </p>
+            </div>
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href="/menu"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-red-600 to-orange-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-orange-950/40 hover:opacity-95 transition-all cursor-pointer"
+              >
+                <ArrowLeft className="size-4" />
+                <span>Return to Full Menu</span>
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // ── Item Details & Availability ───────────────────────────────────────────
+  const item = {
+    id: currentProduct.id,
+    name: currentProduct.name,
+    category: currentProduct.category,
+    categorySlug: currentProduct.categorySlug,
+    price: currentProduct.price,
+    restaurantName: currentProduct.restaurantName,
+    location: currentProduct.location,
+    description: currentProduct.description,
+    image: currentProduct.image,
+    rating: currentProduct.rating,
+    reviews: currentProduct.reviews,
+    badge: currentProduct.badge || "Bestseller",
+    isActive: currentProduct.isActive !== false,
+    status: currentProduct.status || "approved",
+  };
+
+  // Only approved and active items can be ordered
+  const canOrder = item.isActive && item.status === "approved";
+
+  // Role Checks
+  const userRole = session?.user?.role;
+  const userName = session?.user?.name || "";
+  const userEmail = session?.user?.email || "";
+  const isOwnerVendor =
+    userRole === "vendor" &&
+    (userName.toLowerCase() === item.restaurantName.toLowerCase() ||
+      userEmail.toLowerCase().includes(item.restaurantName.toLowerCase().replace(/\s+/g, "")));
+
+  // ── Gallery Images (5 high-resolution photography assets) ─────────────────
+  const galleryImages = [
+    item.image,
+    "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1000&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1000&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1604382355076-af4b0eb60143?w=1000&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=1000&auto=format&fit=crop&q=80",
+  ];
+
+  // ── Dynamic Pricing Calculation (Unit price + Total price) ─────────────────
   const sizeOffset = SIZE_OPTIONS.find((s) => s.value === selectedSize)?.priceOffset || 0;
   const crustOffset = CRUST_OPTIONS.find((c) => c.value === selectedCrust)?.priceOffset || 0;
   const unitPrice = item.price + sizeOffset + crustOffset;
@@ -165,15 +255,62 @@ export default function MenuItemDetailPage({ params }: PageProps) {
     });
   };
 
-  const handleAddToCart = () => {
+  // ── Validation Guard: Ordering Rules ──────────────────────────────────────
+  const validateOrderAction = (): boolean => {
     if (!isLoggedIn) {
       toast.add({
-        title: "Please sign in to add items to your cart",
+        title: "Customers must be logged in to order",
         type: "info",
       });
       router.push("/sign-in");
-      return;
+      return false;
     }
+
+    if (userRole === "admin") {
+      toast.add({
+        title: "Admins cannot place customer orders",
+        type: "error",
+      });
+      return false;
+    }
+
+    if (userRole === "vendor" && isOwnerVendor) {
+      toast.add({
+        title: "Vendors cannot order their own items",
+        type: "error",
+      });
+      return false;
+    }
+
+    if (!canOrder) {
+      toast.add({
+        title: "Only approved and active items can be ordered",
+        type: "error",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleAddToCart = () => {
+    if (!validateOrderAction()) return;
+
+    const sizeLabel = SIZE_OPTIONS.find((s) => s.value === selectedSize)?.label;
+    const crustLabel = CRUST_OPTIONS.find((c) => c.value === selectedCrust)?.label;
+
+    // Add to cart state and update Navbar badge
+    addToCart(
+      {
+        id: item.id,
+        name: item.name,
+        price: unitPrice,
+        image: item.image,
+        size: sizeLabel,
+        crust: crustLabel,
+      },
+      quantity
+    );
 
     setIsAddedToCart(true);
     toast.add({
@@ -184,14 +321,22 @@ export default function MenuItemDetailPage({ params }: PageProps) {
   };
 
   const handleOrderNow = () => {
-    if (!isLoggedIn) {
-      toast.add({
-        title: "Please sign in to complete your order",
-        type: "info",
-      });
-      router.push("/sign-in");
-      return;
-    }
+    if (!validateOrderAction()) return;
+
+    const sizeLabel = SIZE_OPTIONS.find((s) => s.value === selectedSize)?.label;
+    const crustLabel = CRUST_OPTIONS.find((c) => c.value === selectedCrust)?.label;
+
+    addToCart(
+      {
+        id: item.id,
+        name: item.name,
+        price: unitPrice,
+        image: item.image,
+        size: sizeLabel,
+        crust: crustLabel,
+      },
+      quantity
+    );
 
     toast.add({
       title: `Proceeding to checkout with ${quantity}x ${item.name} (৳ ${totalPrice})`,
@@ -213,7 +358,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
       <Navbar />
 
       <main className="flex-1 py-6 sm:py-10 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto space-y-8">
 
           {/* ── Top Bar: Circular Back Button & Breadcrumbs ── */}
           <div className="flex items-center gap-3">
@@ -284,7 +429,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                   type="button"
                   onClick={handleWishlistToggle}
                   aria-label="Toggle wishlist"
-                  className="absolute top-4 right-4 flex size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/70 hover:scale-105 transition-all shadow-md z-10"
+                  className="absolute top-4 right-4 flex size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/70 hover:scale-105 transition-all shadow-md z-10 cursor-pointer"
                 >
                   <Heart
                     className={`size-5 transition-colors ${
@@ -298,7 +443,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                   type="button"
                   onClick={handlePrevImage}
                   aria-label="Previous image"
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-orange-500 hover:border-orange-500 hover:scale-105 transition-all shadow-md z-10"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-orange-500 hover:border-orange-500 hover:scale-105 transition-all shadow-md z-10 cursor-pointer"
                 >
                   <ChevronLeft className="size-5" />
                 </button>
@@ -308,7 +453,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                   type="button"
                   onClick={handleNextImage}
                   aria-label="Next image"
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-orange-500 hover:border-orange-500 hover:scale-105 transition-all shadow-md z-10"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-orange-500 hover:border-orange-500 hover:scale-105 transition-all shadow-md z-10 cursor-pointer"
                 >
                   <ChevronRight className="size-5" />
                 </button>
@@ -377,7 +522,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                   </div>
 
                   <p className="text-xs text-zinc-400">
-                    Premium pizzas, fast delivery, and great taste.
+                    Premium pizzas, fast delivery, and high hygiene ratings.
                   </p>
 
                   {/* Rating, Delivery & Verified Meta Row */}
@@ -415,9 +560,18 @@ export default function MenuItemDetailPage({ params }: PageProps) {
               {/* 1. Header & Rating */}
               <div>
                 {/* Category Pill Badge */}
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-400 text-xs font-bold mb-3">
-                  <span>🍕</span>
-                  <span>{item.category}</span>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-400 text-xs font-bold">
+                    <span>🍕</span>
+                    <span>{item.category}</span>
+                  </div>
+
+                  {!canOrder && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-400 text-xs font-bold">
+                      <AlertCircle className="size-3 text-amber-500" />
+                      <span>Currently Unavailable</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Product Name */}
@@ -437,7 +591,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
 
                   <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600/20 to-orange-500/20 border border-orange-500/30 text-orange-400 text-xs font-bold">
                     <Flame className="size-3 text-orange-500" />
-                    <span>Bestseller</span>
+                    <span>{item.badge}</span>
                   </div>
                 </div>
 
@@ -449,17 +603,24 @@ export default function MenuItemDetailPage({ params }: PageProps) {
 
               {/* 2. Price, Quantity Selector, Add to Cart & Order Now */}
               <div className="flex flex-wrap items-center gap-3.5 sm:gap-4 pt-1">
-                {/* Price in BDT */}
-                <span className="text-3xl sm:text-4xl font-black text-orange-500 font-mono tracking-tight shrink-0">
-                  ৳ {unitPrice}
-                </span>
+                {/* Price in BDT - dynamically syncs with quantity */}
+                <div className="flex items-baseline gap-2 shrink-0">
+                  <span className="text-3xl sm:text-4xl font-black text-orange-500 font-mono tracking-tight">
+                    ৳ {totalPrice}
+                  </span>
+                  {quantity > 1 && (
+                    <span className="text-xs text-zinc-400 font-medium">
+                      (৳ {unitPrice} each)
+                    </span>
+                  )}
+                </div>
 
                 {/* Quantity Selector: Minus, Value, Plus */}
                 <div className="flex items-center rounded-full border border-white/15 bg-[#141416] p-1 shadow-inner shrink-0">
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    disabled={quantity <= 1}
+                    disabled={quantity <= 1 || !canOrder}
                     aria-label="Decrease quantity"
                     className="flex size-7 sm:size-8 items-center justify-center rounded-full text-zinc-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   >
@@ -473,8 +634,9 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => q + 1)}
+                    disabled={!canOrder}
                     aria-label="Increase quantity"
-                    className="flex size-7 sm:size-8 items-center justify-center rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                    className="flex size-7 sm:size-8 items-center justify-center rounded-full text-zinc-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   >
                     <Plus className="size-3.5" />
                   </button>
@@ -484,7 +646,8 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-bold transition-all shadow-lg shadow-orange-950/40 cursor-pointer ${
+                  disabled={!canOrder}
+                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-bold transition-all shadow-lg shadow-orange-950/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                     isAddedToCart
                       ? "bg-emerald-600 text-white scale-95"
                       : "bg-gradient-to-r from-red-600 to-orange-500 text-white hover:opacity-95 active:scale-95"
@@ -494,17 +657,25 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                   <span>{isAddedToCart ? "Added!" : "Add to Cart"}</span>
                 </button>
 
-                {/* Order Now Button: NO icon, text color is red-to-orange gradient */}
+                {/* Order Now Button: text color is red-to-orange gradient */}
                 <button
                   type="button"
                   onClick={handleOrderNow}
-                  className="px-6 py-3 rounded-full border border-white/20 bg-[#161619] hover:border-orange-500/60 hover:bg-[#1a1a1e] active:scale-95 transition-all shadow-md cursor-pointer"
+                  disabled={!canOrder}
+                  className="px-6 py-3 rounded-full border border-white/20 bg-[#161619] hover:border-orange-500/60 hover:bg-[#1a1a1e] active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <span className="bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 bg-clip-text text-transparent font-black text-xs sm:text-sm">
                     Order Now
                   </span>
                 </button>
               </div>
+
+              {!canOrder && (
+                <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 p-3 flex items-center gap-2.5 text-xs text-amber-400">
+                  <AlertCircle className="size-4 shrink-0 text-amber-500" />
+                  <span>This item is currently inactive or awaiting approval and cannot be ordered.</span>
+                </div>
+              )}
 
               {/* 3. Section: "Customize Your Pizza" */}
               <div className="space-y-4 pt-2">
@@ -649,7 +820,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                               type="button"
                               onClick={(e) => handleRelatedWishlistToggle(prod.id, e)}
                               aria-label="Wishlist"
-                              className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/60 transition-colors"
+                              className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/60 transition-colors cursor-pointer"
                             >
                               <Heart
                                 className={`size-3.5 ${
@@ -682,6 +853,140 @@ export default function MenuItemDetailPage({ params }: PageProps) {
 
             </div>
           </div>
+
+          {/* ═════════════════════════════════════════════════════════════════
+              REVIEWS & RATINGS SECTION: Customer feedback & vendor breakdown
+             ═════════════════════════════════════════════════════════════════ */}
+          <section className="pt-8 border-t border-white/10 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                  <MessageSquare className="size-5 text-orange-500" />
+                  <span>Customer Reviews & Ratings</span>
+                </h3>
+                <p className="text-zinc-400 text-xs sm:text-sm mt-1">
+                  Real feedback from verified pizza lovers who ordered {item.name}.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900 border border-white/10 text-xs text-zinc-300 font-semibold">
+                  <Award className="size-3.5 text-orange-400" />
+                  <span>100% Verified Purchases</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Ratings Overview Card */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 rounded-2xl bg-[#141416] p-6 border border-white/10">
+              {/* Score column */}
+              <div className="md:col-span-4 flex flex-col items-center justify-center p-4 border-b md:border-b-0 md:border-r border-white/10 text-center">
+                <span className="text-5xl font-black text-white font-mono">{item.rating}</span>
+                <div className="flex items-center gap-1 my-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="size-5 fill-orange-400 text-orange-400" />
+                  ))}
+                </div>
+                <p className="text-xs text-zinc-400">
+                  Based on {item.reviews.toLocaleString()} reviews
+                </p>
+                <span className="mt-3 text-[11px] font-bold text-orange-400 bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/30">
+                  96% Recommend this pizza
+                </span>
+              </div>
+
+              {/* Progress bars column */}
+              <div className="md:col-span-8 flex flex-col justify-center space-y-2.5">
+                {[
+                  { star: 5, pct: 78 },
+                  { star: 4, pct: 15 },
+                  { star: 3, pct: 4 },
+                  { star: 2, pct: 2 },
+                  { star: 1, pct: 1 },
+                ].map((row) => (
+                  <div key={row.star} className="flex items-center gap-3 text-xs">
+                    <span className="w-12 text-zinc-400 font-medium shrink-0 flex items-center gap-1">
+                      <span>{row.star}</span>
+                      <Star className="size-3 text-orange-400 fill-orange-400" />
+                    </span>
+                    <div className="flex-1 h-2 rounded-full bg-zinc-800 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400"
+                        style={{ width: `${row.pct}%` }}
+                      />
+                    </div>
+                    <span className="w-8 text-right text-zinc-400 font-mono text-[11px]">
+                      {row.pct}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Reviews List */}
+            <div className="space-y-4">
+              {SAMPLE_REVIEWS.map((rev) => (
+                <div
+                  key={rev.id}
+                  className="rounded-2xl bg-[#121215] p-5 border border-white/10 space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center font-bold text-sm text-white">
+                        {rev.author.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-white text-sm">{rev.author}</h4>
+                          {rev.verified && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              <Check className="size-2.5" />
+                              <span>Verified Order</span>
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-zinc-500">{rev.date}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`size-3.5 ${
+                            i < rev.rating
+                              ? "fill-orange-400 text-orange-400"
+                              : "text-zinc-600"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
+                    {rev.comment}
+                  </p>
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/5 text-[11px] text-zinc-400">
+                    <div className="flex items-center gap-3">
+                      <span>Size: <strong className="text-zinc-200">{rev.size}</strong></span>
+                      <span>•</span>
+                      <span>Crust: <strong className="text-zinc-200">{rev.crust}</strong></span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <ThumbsUp className="size-3" />
+                      <span>Helpful ({rev.likes})</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
         </div>
       </main>
 

@@ -16,6 +16,9 @@ export interface MenuItem {
   crusts: ("Classic Crust" | "Thin Crust" | "Cheese Burst" | "Stuffed Crust")[];
   isPopular?: boolean;
   createdAt?: string;
+  isActive?: boolean;
+  status?: "approved" | "pending" | "rejected";
+  vendorId?: string;
 }
 
 export const MENU_ITEMS: MenuItem[] = [
