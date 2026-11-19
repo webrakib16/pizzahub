@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Heart,
@@ -17,6 +18,7 @@ import {
   
 } from "lucide-react";
 import { FEATURED_MENU_ITEMS, FeaturedMenuItem } from "@/data/featured-menu";
+import { useWishlist } from "@/hooks/use-wishlist";
 
 function PizzaSliceIcon({ className = "size-5 text-orange-500" }: { className?: string }) {
   return (
@@ -44,14 +46,30 @@ const ANGLE_PER_ITEM = 360 / ITEM_COUNT; // 60 deg
 const RADIUS = 430; // Compact radius ensuring cards & bottom elements are always visible
 
 export default function FeaturedMenuItems() {
+  const router = useRouter();
   const items: FeaturedMenuItem[] = FEATURED_MENU_ITEMS;
+  const { isInWishlist, toggleWishlistItem } = useWishlist();
   const [activeRotation, setActiveRotation] = useState(0);
   const [modalItem, setModalItem] = useState<FeaturedMenuItem | null>(null);
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
-  const toggleFavorite = (id: string, e: React.MouseEvent) => {
+  const toggleFavorite = (item: FeaturedMenuItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+    toggleWishlistItem({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image,
+      category: item.category,
+      badge: item.badge,
+      rating: item.rating,
+      reviews: item.reviews,
+    });
+  };
+
+  // "View Details" always navigates — works whether card is at center or not
+  const handleViewDetails = (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    router.push(`/menu/${itemId}`);
   };
 
   // Determine which item is currently front-facing
@@ -151,7 +169,7 @@ export default function FeaturedMenuItems() {
               {items.map((item, index) => {
                 const itemAngle = index * ANGLE_PER_ITEM;
                 const isCenter = index === activeIndex;
-                const isFav = Boolean(favorites[item.id]);
+                const isFav = isInWishlist(item.id);
 
                 return (
                   <div
@@ -198,7 +216,7 @@ export default function FeaturedMenuItems() {
                         {/* Upper Right: Heart */}
                         <button
                           type="button"
-                          onClick={(e) => toggleFavorite(item.id, e)}
+                          onClick={(e) => toggleFavorite(item, e)}
                           aria-label="Add to wishlist"
                           className="absolute top-2.5 right-2.5 z-10 size-7 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:text-red-500 hover:bg-black/80 transition-colors"
                         >
@@ -241,11 +259,8 @@ export default function FeaturedMenuItems() {
                         <div className="mt-2 pt-1.5 border-t border-white/5">
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setModalItem(item);
-                            }}
-                            className="flex w-full items-center justify-center gap-1.5 h-8 sm:h-9 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 text-white text-xs font-bold shadow-md shadow-orange-950/40 hover:opacity-95 active:scale-95 transition-all"
+                            onClick={(e) => handleViewDetails(e, item.id)}
+                            className="flex w-full items-center justify-center gap-1.5 h-8 sm:h-9 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 text-white text-xs font-bold shadow-md shadow-orange-950/40 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
                           >
                             <span>View Details</span>
                             <ArrowRight className="size-3" />

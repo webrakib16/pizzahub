@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   ChevronDown,
+  Heart,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -17,18 +18,22 @@ import {
 import { toast } from "@/components/ui/toast";
 import { signOut, useSession } from "@/lib/auth-client";
 import { useCart } from "@/hooks/use-cart";
-
-// Navbar er link gulo ekhane list kora — pore easily change kora jabe
-const navLinks = [
-  { label: "Home", href: "/" },
-  { label: "Browse Menu", href: "/menu" },
-];
+import { useWishlist } from "@/hooks/use-wishlist";
 
 // Role onujayi dashboard er path
 function getDashboardHref(role?: string | null) {
   if (role === "vendor") return "/vendor/dashboard";
   if (role === "admin") return "/admin/dashboard";
   return "/dashboard";
+}
+
+// Nav links: Home removed, Browse Menu + Dashboard + Be Partner
+function getNavLinks(role?: string | null) {
+  return [
+    { label: "Browse Menu", href: "/menu" },
+    { label: "Dashboard", href: getDashboardHref(role) },
+    { label: "Be Partner", href: "/be-partner" },
+  ];
 }
 
 // Profile image na thakle name theke initials banano hoy
@@ -44,8 +49,10 @@ function getInitials(name?: string | null) {
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session, isPending } = useSession();
   const { totalCount } = useCart();
+  const { totalCount: wishlistCount } = useWishlist();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -54,6 +61,9 @@ export default function Navbar() {
 
   const user = session?.user;
   const isLoggedIn = Boolean(user);
+  const navLinks = getNavLinks(user?.role);
+  const isHomePage = pathname === "/";
+  const shouldShowFloatingWishlist = !isHomePage && wishlistCount > 0;
 
   // Dropdown er baire click ba Escape chaple dropdown bondho hoy
   useEffect(() => {
@@ -133,7 +143,8 @@ export default function Navbar() {
   );
 
   return (
-    <header className="relative z-50 border-b border-white/5 bg-zinc-950/95 backdrop-blur">
+    <>
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-zinc-950/95 backdrop-blur-md">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
         {/* Logo: icon image + text lockup (source logo er white bg remove kora) */}
         <Link href="/" className="flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -163,20 +174,23 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop nav links — Home active (orange), hover e color change hoy */}
-        <ul className="hidden items-center gap-6 lg:flex xl:gap-10">
-          {navLinks.map((link) => (
-            <li key={link.label}>
-              <Link
-                href={link.href}
-                className={`text-[15px] font-medium transition-colors hover:text-orange-500 ${
-                  link.label === "Home" ? "text-orange-500" : "text-zinc-200"
-                }`}
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
+        {/* Desktop nav links */}
+        <ul className="hidden items-center gap-6 lg:flex xl:gap-8">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <li key={link.label}>
+                <Link
+                  href={link.href}
+                  className={`text-[15px] font-medium transition-colors hover:text-orange-500 ${
+                    isActive ? "text-orange-500 font-semibold" : "text-zinc-200"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
 
         {/* Right side: Cart Icon + Auth / User profile */}
@@ -302,10 +316,10 @@ export default function Navbar() {
               disabled={isSigningOut}
               aria-label="Logout"
               title="Logout"
-              className="flex items-center justify-center gap-2 rounded-full border border-red-500/40 p-2 text-red-400 transition-colors hover:border-red-500/70 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60 sm:px-4 sm:py-2 sm:text-sm sm:font-medium"
+              className="group flex items-center justify-center gap-2 rounded-full border-t border-x border-t-white/80 border-x-white/40 border-b-2 border-b-orange-500 bg-[#141416]/90 p-2 transition-all duration-200 hover:border-t-orange-500 hover:border-x-orange-500 hover:border-b-white hover:bg-white/5 hover:shadow-[0_0_15px_rgba(249,115,22,0.25)] disabled:opacity-60 sm:px-4 sm:py-2 sm:text-sm cursor-pointer"
             >
-              <LogOut className="size-4 shrink-0" />
-              <span className="hidden sm:inline">
+              <LogOut className="size-4 shrink-0 text-red-500 group-hover:text-orange-500 transition-colors" />
+              <span className="hidden sm:inline bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent font-bold">
                 {isSigningOut ? "Logging out..." : "Logout"}
               </span>
             </button>
@@ -349,19 +363,22 @@ export default function Navbar() {
       {menuOpen && (
         <div className="border-t border-white/10 bg-zinc-950 px-4 pt-3 pb-4 sm:px-6 lg:hidden">
           <ul className="flex flex-col gap-1">
-            {navLinks.map((link) => (
-              <li key={link.label}>
-                <Link
-                  href={link.href}
-                  onClick={closeAll}
-                  className={`block rounded-lg px-3 py-2 text-[15px] font-medium transition-colors hover:bg-white/5 hover:text-orange-500 ${
-                    link.label === "Home" ? "text-orange-500" : "text-zinc-200"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    onClick={closeAll}
+                    className={`block rounded-lg px-3 py-2 text-[15px] font-medium transition-colors hover:bg-white/5 hover:text-orange-500 ${
+                      isActive ? "text-orange-500 font-semibold" : "text-zinc-200"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
 
           {/* Mobile: logged out -> auth buttons */}
@@ -430,5 +447,63 @@ export default function Navbar() {
         </div>
       )}
     </header>
+
+      {/*
+        Floating Wishlist button:
+        • Hidden on Home page (pathname === "/")
+        • Hidden when wishlistCount === 0 (no saved products)
+        • Visible ONLY when user has saved 1+ products in wishlist
+        • Mobile: Vertical right-edge tab (mirrors mobile Resume reference)
+        • Desktop: Fixed horizontal pill right-aligned with max-w-7xl content container
+          (exactly below Logout button and aligned with product cards, as marked in reference)
+      */}
+      {shouldShowFloatingWishlist && (
+        <>
+          {/* ── MOBILE vertical tab (hidden on sm+) ── */}
+          <Link
+            href="/wishlist"
+            aria-label="View Wishlist"
+            className="fixed right-0 top-1/2 -translate-y-1/2 z-40 flex sm:hidden flex-col items-center gap-1.5 px-2 py-3 rounded-l-xl rounded-r-none border-t-2 border-b-2 border-l border-t-white border-b-orange-500 border-l-white/20 bg-[#141416]/95 backdrop-blur-sm cursor-pointer group hover:bg-[#1a1a1c]/95 transition-all duration-300 active:scale-95 shadow-xl"
+          >
+            {/* Heart icon */}
+            <Heart className="size-4 fill-red-500 text-red-500 shrink-0 group-hover:scale-110 transition-transform duration-200" />
+
+            {/* Vertical text — red-to-orange gradient, writing-mode vertical */}
+            <span
+              className="text-[11px] font-extrabold tracking-widest uppercase bg-gradient-to-b from-red-500 to-orange-500 bg-clip-text text-transparent"
+              style={{ writingMode: "vertical-rl", textOrientation: "mixed", letterSpacing: "0.2em" }}
+            >
+              WISHLIST
+            </span>
+
+            {/* Badge */}
+            <span className="flex min-w-[18px] h-[18px] px-0.5 items-center justify-center rounded-full bg-gradient-to-r from-red-600 to-orange-500 text-[9px] font-black text-white shadow-sm">
+              {wishlistCount > 99 ? "99+" : wishlistCount}
+            </span>
+          </Link>
+
+          {/* ── DESKTOP horizontal floating button (hidden below sm) ──
+              Anchored right-aligned with max-w-7xl content container,
+              exactly beneath the Navbar's Logout button and beside product cards ── */}
+          <div className="pointer-events-none fixed inset-x-0 bottom-24 sm:bottom-28 z-40 hidden sm:block">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex justify-end">
+              <Link
+                href="/wishlist"
+                aria-label="View Wishlist"
+                className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 rounded-full border-t-2 border-b-2 border-x border-t-white border-b-orange-500 border-x-white/20 bg-[#141416]/95 backdrop-blur-md cursor-pointer group hover:bg-[#1a1a1c]/95 hover:border-t-orange-500 hover:border-b-white hover:shadow-[0_4px_25px_rgba(249,115,22,0.3)] hover:scale-105 transition-all duration-300 active:scale-95 shadow-2xl"
+              >
+                <Heart className="size-4 fill-red-500 text-red-500 shrink-0 group-hover:scale-110 transition-transform duration-200" />
+                <span className="text-sm font-extrabold tracking-widest uppercase bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
+                  Wishlist
+                </span>
+                <span className="flex min-w-[18px] h-[18px] px-0.5 items-center justify-center rounded-full bg-gradient-to-r from-red-600 to-orange-500 text-[9px] font-black text-white shadow-sm">
+                  {wishlistCount > 99 ? "99+" : wishlistCount}
+                </span>
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }

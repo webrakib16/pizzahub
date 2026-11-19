@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import {
   ArrowRight,
   Bike,
@@ -93,14 +94,14 @@ export default function Hero() {
 
           {/* Primary CTA Button */}
           <div className="mt-15">
-            <a
-              href="#"
-              className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-red-600 to-orange-500 px-7 py-3.5 text-sm font-semibold text-white shadow-xl shadow-red-950/40 transition-all hover:opacity-95 hover:shadow-orange-950/50 sm:text-base"
+            <Link
+              href="/menu"
+              className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-red-600 to-orange-500 px-7 py-3.5 text-sm font-semibold text-white shadow-xl shadow-red-950/40 transition-all hover:opacity-95 hover:shadow-orange-950/50 sm:text-base cursor-pointer"
             >
               <Pizza className="size-5 shrink-0" />
               <span>Explore Pizza Menu</span>
               <ArrowRight className="size-4 shrink-0" />
-            </a>
+            </Link>
           </div>
         </div>
       </div>

@@ -34,6 +34,7 @@ import { FEATURED_MENU_ITEMS } from "@/data/featured-menu";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
 import { addToCart } from "@/hooks/use-cart";
+import { useWishlist } from "@/hooks/use-wishlist";
 
 // ─── Customization Pricing Rules ──────────────────────────────────────────────
 const SIZE_OPTIONS = [
@@ -107,14 +108,15 @@ export default function MenuItemDetailPage({ params }: PageProps) {
 
   const currentProduct = menuItem || (featuredItem as (typeof MENU_ITEMS)[0] | undefined);
 
+  const { isInWishlist, toggleWishlistItem } = useWishlist();
+  const isWishlisted = currentProduct ? isInWishlist(currentProduct.id) : false;
+
   // ── Interactive UI States (Unconditional Hooks for React Rules of Hooks) ─
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>("regular");
   const [selectedCrust, setSelectedCrust] = useState<string>("classic");
   const [quantity, setQuantity] = useState(1);
   const [isAddedToCart, setIsAddedToCart] = useState(false);
-  const [relatedWishlist, setRelatedWishlist] = useState<Record<string, boolean>>({});
 
   // ── Related Products (3 distinct pizza cards) ─────────────────────────────
   const relatedPizzas = useMemo(() => {
@@ -224,17 +226,35 @@ export default function MenuItemDetailPage({ params }: PageProps) {
       router.push("/sign-in");
       return;
     }
-    setIsWishlisted((prev) => {
-      const next = !prev;
-      toast.add({
-        title: next ? "Added to your wishlist!" : "Removed from wishlist",
-        type: "success",
-      });
-      return next;
+    const added = toggleWishlistItem({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image,
+      description: item.description,
+      rating: item.rating,
+      reviews: item.reviews,
+      badge: item.badge,
+    });
+    toast.add({
+      title: added ? "Added to your wishlist!" : "Removed from wishlist",
+      type: "success",
     });
   };
 
-  const handleRelatedWishlistToggle = (prodId: string, e: React.MouseEvent) => {
+  const handleRelatedWishlistToggle = (
+    prod: {
+      id: string;
+      name: string;
+      price: number;
+      image: string;
+      description?: string;
+      rating?: number;
+      reviews?: number;
+      badge?: string;
+    },
+    e: React.MouseEvent
+  ) => {
     e.preventDefault();
     e.stopPropagation();
     if (!isLoggedIn) {
@@ -245,13 +265,19 @@ export default function MenuItemDetailPage({ params }: PageProps) {
       router.push("/sign-in");
       return;
     }
-    setRelatedWishlist((prev) => {
-      const next = !prev[prodId];
-      toast.add({
-        title: next ? "Saved to wishlist!" : "Removed from wishlist",
-        type: "success",
-      });
-      return { ...prev, [prodId]: next };
+    const added = toggleWishlistItem({
+      id: prod.id,
+      name: prod.name,
+      price: prod.price,
+      image: prod.image,
+      description: prod.description,
+      rating: prod.rating,
+      reviews: prod.reviews,
+      badge: prod.badge,
+    });
+    toast.add({
+      title: added ? "Saved to wishlist!" : "Removed from wishlist",
+      type: "success",
     });
   };
 
@@ -338,10 +364,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
       quantity
     );
 
-    toast.add({
-      title: `Proceeding to checkout with ${quantity}x ${item.name} (৳ ${totalPrice})`,
-      type: "success",
-    });
+    router.push("/checkout");
   };
 
   const handleBackNavigation = () => {
@@ -798,7 +821,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                 {/* 3 Related Pizza Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   {relatedPizzas.map((prod) => {
-                    const isRelFav = relatedWishlist[prod.id];
+                    const isRelFav = isInWishlist(prod.id);
                     return (
                       <Link
                         key={prod.id}
@@ -818,7 +841,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
 
                             <button
                               type="button"
-                              onClick={(e) => handleRelatedWishlistToggle(prod.id, e)}
+                              onClick={(e) => handleRelatedWishlistToggle(prod, e)}
                               aria-label="Wishlist"
                               className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/60 transition-colors cursor-pointer"
                             >

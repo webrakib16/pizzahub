@@ -25,6 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        
         {/* shadcn/ui toast provider — sign in / sign up / logout notifications */}
         <Toaster>{children}</Toaster>
       </body>

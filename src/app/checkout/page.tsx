@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,7 +21,6 @@ import {
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/Footer";
 import { useCart, saveCartItems } from "@/hooks/use-cart";
-import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
 
 // ─── Dhaka Areas ─────────────────────────────────────────────────────────────
@@ -124,7 +123,6 @@ const inputError = "border-red-500/60 focus:border-red-500";
 export default function CheckoutPage() {
   const router = useRouter();
   const { items } = useCart();
-  const { data: session } = useSession();
 
   const [form, setForm] = useState<FormData>(() => {
     let initialLoc: DeliveryId | "" = "";

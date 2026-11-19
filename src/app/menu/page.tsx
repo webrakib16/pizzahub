@@ -27,6 +27,7 @@ import Footer from "@/components/Footer";
 import { MENU_ITEMS } from "@/data/menu-data";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
+import { useWishlist } from "@/hooks/use-wishlist";
 import {
   Sheet,
   SheetContent,
@@ -532,7 +533,7 @@ export default function MenuPage() {
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const [isFilteringLoading, setIsFilteringLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
+  const { isInWishlist, toggleWishlistItem } = useWishlist();
 
   // Subtle loading transition on filter change
   const triggerFilterTransition = () => {
@@ -562,7 +563,7 @@ export default function MenuPage() {
     triggerFilterTransition();
   };
 
-  const toggleWishlist = (id: string, e: React.MouseEvent) => {
+  const toggleWishlist = (item: (typeof MENU_ITEMS)[0], e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!isLoggedIn) {
@@ -573,13 +574,19 @@ export default function MenuPage() {
       router.push("/sign-in");
       return;
     }
-    setWishlist((prev) => {
-      const next = !prev[id];
-      toast.add({
-        title: next ? "Added to your wishlist!" : "Removed from wishlist",
-        type: "success",
-      });
-      return { ...prev, [id]: next };
+    const added = toggleWishlistItem({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image,
+      description: item.description,
+      rating: item.rating,
+      reviews: item.reviews,
+      badge: item.badge,
+    });
+    toast.add({
+      title: added ? "Added to your wishlist!" : "Removed from wishlist",
+      type: "success",
     });
   };
 
@@ -789,7 +796,7 @@ export default function MenuPage() {
         </section>
 
         {/* ── 3. Category Navigation Bar ── */}
-        <section className="sticky top-0 z-30 bg-[#09090b]/95 backdrop-blur-md border-b border-white/10">
+        <section className="sticky top-16 sm:top-[72px] z-30 bg-[#09090b]/95 backdrop-blur-md border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-2.5 overflow-x-auto py-3.5 no-scrollbar scrollbar-none">
               {CATEGORY_TABS.map((tab) => {
@@ -801,10 +808,10 @@ export default function MenuPage() {
                       setActiveCategory(tab.slug);
                       triggerFilterTransition();
                     }}
-                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 shrink-0 ${
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
                       isActive
-                        ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-lg shadow-orange-950/40 scale-[1.02]"
-                        : "bg-[#141416] border border-white/10 text-zinc-300 hover:text-white hover:border-orange-500/40"
+                        ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-lg shadow-orange-950/40 border-t border-x border-t-white/80 border-x-white/40 border-b-2 border-b-orange-400 scale-[1.02]"
+                        : "bg-[#141416] border-t border-x border-t-white/80 border-x-white/40 border-b-2 border-b-orange-500 text-zinc-300 hover:text-white hover:border-t-orange-500 hover:border-x-orange-500 hover:border-b-white"
                     }`}
                   >
                     <CategoryTabIcon type={tab.type} className="size-4" />
@@ -821,7 +828,7 @@ export default function MenuPage() {
           <div className="flex gap-8 items-start">
 
             {/* ── DESKTOP FILTER SIDEBAR — sticky, stays fixed while products scroll ── */}
-            <aside className="hidden lg:block w-64 xl:w-72 shrink-0 sticky top-[72px] self-start max-h-[calc(100vh-85px)] overflow-y-auto no-scrollbar">
+            <aside className="hidden lg:block w-64 xl:w-72 shrink-0 sticky top-[136px] sm:top-[144px] self-start max-h-[calc(100vh-155px)] overflow-y-auto no-scrollbar">
               <div className="rounded-2xl border border-white/10 bg-[#121215] p-5 shadow-xl">
                 <FilterPanel
                   minPrice={minPrice}
@@ -1109,7 +1116,7 @@ export default function MenuPage() {
                   >
                     <AnimatePresence mode="popLayout">
                       {paginatedItems.map((item, index) => {
-                        const isFavorited = wishlist[item.id];
+                        const isFavorited = isInWishlist(item.id);
 
                         if (viewMode === "list") {
                           // ── Horizontal List View Card ──
@@ -1139,7 +1146,7 @@ export default function MenuPage() {
                                   </span>
                                 )}
                                 <button
-                                  onClick={(e) => toggleWishlist(item.id, e)}
+                                  onClick={(e) => toggleWishlist(item, e)}
                                   className="absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/60 transition-colors"
                                   aria-label="Wishlist"
                                 >
@@ -1226,7 +1233,7 @@ export default function MenuPage() {
 
                                 {/* Wishlist Heart Button - round dark pill with border */}
                                 <button
-                                  onClick={(e) => toggleWishlist(item.id, e)}
+                                  onClick={(e) => toggleWishlist(item, e)}
                                   className="absolute top-2.5 right-2.5 flex size-9 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/60 transition-colors shadow-sm"
                                   aria-label="Wishlist"
                                 >
