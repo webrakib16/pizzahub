@@ -1,0 +1,85 @@
+import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
+import { MongoClient } from "mongodb";
+import { mongodbAdapter } from "@better-auth/mongo-adapter";
+import { canonicalEmail, normalizeEmail } from "@/lib/email";
+
+const uri = process.env.MONGODB_BETTER_AUTH_URI as string;
+
+// Reuse MongoDB client in development to prevent connection exhaustion
+declare global {
+  var _mongoClient: MongoClient | undefined;
+}
+
+const client =
+  globalThis._mongoClient || new MongoClient(uri);
+
+if (process.env.NODE_ENV !== "production") {
+  globalThis._mongoClient = client;
+}
+
+const db = client.db("pizzahub");
+
+export const auth = betterAuth({
+  database: mongodbAdapter(db, {
+    client,
+  }),
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 6,
+  },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        required: false,
+        defaultValue: "customer",
+        input: true,
+      },
+    },
+  },
+  socialProviders: {
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          },
+        }
+      : {}),
+  },
+ 
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          // One email = one account.
+          // Gmail ignores dots and "+tag", so r.afik+pizza@gmail.com and
+          // rafik@gmail.com are the same inbox — treat them as duplicates too.
+          const email = normalizeEmail(user.email);
+          const canonical = canonicalEmail(email);
+
+          const existing = await db
+            .collection("user")
+            .find({}, { projection: { email: 1 } })
+            .toArray();
+
+          const isDuplicate = existing.some(
+            (existingUser) =>
+              canonicalEmail(String(existingUser.email ?? "")) === canonical
+          );
+
+          if (isDuplicate) {
+            throw new APIError("UNPROCESSABLE_ENTITY", {
+              message: "This email is already registered. Please sign in instead.",
+              code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
+            });
+          }
+
+          const role = user.role === "vendor" ? "vendor" : "customer";
+          return { data: { ...user, email, role } };
+        },
+      },
+    },
+  },
+});
