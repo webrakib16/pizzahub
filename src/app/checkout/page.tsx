@@ -16,12 +16,15 @@ import {
   CreditCard,
   Truck,
   AlertCircle,
+  CalendarDays,
   ChevronRight,
 } from "lucide-react";
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/Footer";
 import { useCart, saveCartItems } from "@/hooks/use-cart";
 import { toast } from "@/components/ui/toast";
+import { useSession } from "@/lib/auth-client";
+import { getTodayInDhaka, isValidDeliveryDate } from "@/lib/delivery-date";
 
 // ─── Dhaka Areas ─────────────────────────────────────────────────────────────
 const DHAKA_AREAS = [
@@ -77,6 +80,7 @@ interface FormData {
   address: string;
   area: string;
   deliveryLocation: DeliveryId | "";
+  deliveryDate: string;
   instructions: string;
 }
 
@@ -86,6 +90,7 @@ interface FormErrors {
   address?: string;
   area?: string;
   deliveryLocation?: string;
+  deliveryDate?: string;
 }
 
 // ─── Input component (keeps consistent styling) ───────────────────────────────
@@ -123,6 +128,8 @@ const inputError = "border-red-500/60 focus:border-red-500";
 export default function CheckoutPage() {
   const router = useRouter();
   const { items } = useCart();
+  const { data: session, isPending: isSessionPending } = useSession();
+  const isSignedIn = Boolean(session?.user);
 
   const [form, setForm] = useState<FormData>(() => {
     let initialLoc: DeliveryId | "" = "";
@@ -142,6 +149,7 @@ export default function CheckoutPage() {
       address: "",
       area: "",
       deliveryLocation: initialLoc,
+      deliveryDate: "",
       instructions: "",
     };
   });
@@ -209,30 +217,88 @@ export default function CheckoutPage() {
       next.deliveryLocation = "Please select a delivery location.";
     }
 
+    if (!form.deliveryDate) {
+      next.deliveryDate = "Please choose a delivery date.";
+    } else if (!isValidDeliveryDate(form.deliveryDate)) {
+      next.deliveryDate = "Delivery date must be today or later.";
+    }
+
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isSignedIn) {
+      toast.add({
+        title: "Please sign in before placing your order.",
+        type: "error",
+      });
+      router.push("/sign-in");
+      return;
+    }
+
     if (!validate()) return;
     if (items.length === 0) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: form.fullName,
+          phone: form.phone,
+          address: form.address,
+          area: form.area,
+          deliveryLocation: form.deliveryLocation,
+          deliveryDate: form.deliveryDate,
+          instructions: form.instructions,
+          items: items.map((item) => ({
+            menuItemId: item.id,
+            quantity: item.quantity,
+            size: item.size,
+            crust: item.crust,
+          })),
+        }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        order?: { id: string };
+        error?: string;
+      };
+
+      if (!response.ok || !data.order) {
+        toast.add({
+          title: data.error ?? "Could not place your order. Please try again.",
+          type: "error",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       saveCartItems([]);
       try {
         localStorage.removeItem("pizzahub_delivery_location");
       } catch {
         // ignore
       }
+
       toast.add({
         title: "Order placed successfully! Thank you for ordering from PizzaHub.",
         type: "success",
       });
-      router.push("/");
-    }, 1000);
+      router.push(`/orders/${data.order.id}`);
+      router.refresh();
+    } catch {
+      toast.add({
+        title: "Could not place your order. Please try again.",
+        type: "error",
+      });
+      setIsSubmitting(false);
+    }
   };
 
   // ── Empty cart guard ──────────────────────────────────────────────────────
@@ -352,6 +418,22 @@ export default function CheckoutPage() {
 
               {/* ══ LEFT: Delivery Information Form ═══════════════════════ */}
               <div className="lg:col-span-7">
+                {!isSessionPending && !isSignedIn && (
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+                    <span className="flex items-center gap-2 text-sm font-semibold text-amber-200">
+                      <AlertCircle className="size-4 shrink-0" />
+                      Please sign in before placing your order.
+                    </span>
+                    <Link
+                      href="/sign-in"
+                      className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-600 to-orange-500 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-orange-950/40 transition-all hover:opacity-95"
+                    >
+                      Sign in
+                      <ChevronRight className="size-3.5" />
+                    </Link>
+                  </div>
+                )}
+
                 <div className="rounded-3xl bg-[#141416] border border-white/10 shadow-xl overflow-hidden">
 
                   {/* Form Card Header */}
@@ -490,6 +572,27 @@ export default function CheckoutPage() {
                       </div>
                     </div>
 
+                    {/* Delivery Date */}
+                    <div>
+                      <FieldLabel required>Delivery Date</FieldLabel>
+                      <div className="relative">
+                        <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-500 pointer-events-none" />
+                        <input
+                          type="date"
+                          value={form.deliveryDate}
+                          min={getTodayInDhaka()}
+                          onChange={(e) =>
+                            handleChange("deliveryDate", e.target.value)
+                          }
+                          className={`${inputBase} pl-9 ${errors.deliveryDate ? inputError : inputNormal} ${!form.deliveryDate ? "text-zinc-500" : "text-white"}`}
+                        />
+                      </div>
+                      <p className="mt-1.5 text-[11px] text-zinc-500">
+                        Choose today or a later date.
+                      </p>
+                      <ErrorMsg msg={errors.deliveryDate} />
+                    </div>
+
                     {/* Delivery Instructions (Optional) */}
                     <div>
                       <FieldLabel>
@@ -595,12 +698,12 @@ export default function CheckoutPage() {
                       </span>
                     </div>
 
-                    {/* Proceed to Payment CTA */}
+                    {/* Place Order CTA */}
                     <button
                       type="submit"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isSessionPending || !isSignedIn}
                       className={`w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold transition-all shadow-lg ${
-                        isSubmitting
+                        isSubmitting || isSessionPending || !isSignedIn
                           ? "bg-orange-500/60 text-white/70 cursor-not-allowed"
                           : "bg-gradient-to-r from-red-600 to-orange-500 text-white hover:opacity-95 active:scale-[0.99] shadow-orange-950/40 cursor-pointer"
                       }`}
@@ -612,16 +715,28 @@ export default function CheckoutPage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
-                          <span>Processing...</span>
+                          <span>Placing Order...</span>
                         </>
                       ) : (
                         <>
-                          <CreditCard className="size-4" />
-                          <span>Proceed to Payment</span>
+                          <ShoppingCart className="size-4" />
+                          <span>{isSignedIn ? "Place Order" : "Sign in to Order"}</span>
                           <ChevronRight className="size-4" />
                         </>
                       )}
                     </button>
+
+                    {!isSignedIn && !isSessionPending && (
+                      <p className="text-center text-[11px] text-zinc-500">
+                        You must be signed in to place an order.{" "}
+                        <Link
+                          href="/sign-in"
+                          className="font-bold text-orange-400 hover:text-orange-300"
+                        >
+                          Sign in
+                        </Link>
+                      </p>
+                    )}
 
                     {/* Delivery icon row */}
                     <div className="flex items-center justify-center gap-4 pt-1 text-[11px] text-zinc-500">

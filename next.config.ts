@@ -15,7 +15,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "images.unsplash.com",
+        hostname: "**", // allow any external image host (vendor-uploaded URLs)
+      },
+      {
+        protocol: "http",
+        hostname: "**",
       },
     ],
   },

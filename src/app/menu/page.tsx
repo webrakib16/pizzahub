@@ -1388,7 +1388,7 @@ export default function MenuPage() {
 
       {/* ── MOBILE FILTER DRAWER (shadcn/ui Sheet) ── */}
       <Sheet open={isMobileSheetOpen} onOpenChange={setIsMobileSheetOpen}>
-        <SheetContent side="right" className="p-6 overflow-y-auto">
+        <SheetContent side="right" showCloseButton={false} className="p-6 overflow-y-auto">
           <SheetHeader className="pb-4 border-b border-white/10 mb-5">
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2 text-base font-bold text-white">

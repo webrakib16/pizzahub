@@ -14,8 +14,6 @@ import {
   X,
   Check,
 } from "lucide-react";
-import Navbar from "@/components/shared/Navbar";
-import Footer from "@/components/Footer";
 import { useWishlist, WishlistItem } from "@/hooks/use-wishlist";
 import { addToCart } from "@/hooks/use-cart";
 import { toast } from "@/components/ui/toast";
@@ -284,13 +282,7 @@ export default function WishlistPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white flex flex-col selection:bg-orange-500 selection:text-white overflow-x-clip">
-      {/* Sticky Navbar */}
-      <Navbar />
-
-      <main className="flex-1 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto space-y-8">
-
+    <div className="mx-auto w-full max-w-5xl space-y-6">
           {/* ── Page Header ─────────────────────────────────────────────── */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -375,9 +367,6 @@ export default function WishlistPage() {
             </Link>
           </div>
 
-        </div>
-      </main>
-
       {/* ── Confirmation Modal ─────────────────────────────────────────── */}
       <AnimatePresence>
         {showClearDialog && (
@@ -387,8 +376,6 @@ export default function WishlistPage() {
           />
         )}
       </AnimatePresence>
-
-      <Footer />
     </div>
   );
 }

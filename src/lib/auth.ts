@@ -4,16 +4,14 @@ import { MongoClient } from "mongodb";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { canonicalEmail, normalizeEmail } from "@/lib/email";
 
-const uri = process.env.MONGODB_BETTER_AUTH_URI as string;
+// const uri = process.env.MONGODB_BETTER_AUTH_URI as string;
 
 // Reuse MongoDB client in development to prevent connection exhaustion
 declare global {
   var _mongoClient: MongoClient | undefined;
 }
 
-const client =
-  globalThis._mongoClient || new MongoClient(uri);
-
+const client = new MongoClient(process.env.MONGODB_BETTER_AUTH_URI as string)
 if (process.env.NODE_ENV !== "production") {
   globalThis._mongoClient = client;
 }
@@ -26,14 +24,14 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 6,
+    minPasswordLength: 8,
   },
   user: {
     additionalFields: {
       role: {
-        type: "string",
+        type: ["customer","vendor","admin"],
         required: false,
-        defaultValue: "customer",
+        defaultValue: "user",
         input: true,
       },
     },
