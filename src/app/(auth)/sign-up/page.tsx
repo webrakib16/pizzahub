@@ -139,8 +139,15 @@ export default function SignUpPage() {
             // Learning/debug: sign-up response theke notun user er data console e dekhao
             console.log("[PizzaHub] sign-up successful — user data:", signUpData?.user);
 
+            const successTitle =
+                formData.role === "vendor"
+                    ? `🍕 Vendor account created! Welcome to PizzaHub, ${formData.name.trim()}. Set up your restaurant and start selling.`
+                    : formData.role === "admin"
+                    ? `🛡️ Admin account created! Welcome, ${formData.name.trim()}. You now have full access to manage PizzaHub.`
+                    : `🎉 Welcome to PizzaHub, ${formData.name.trim()}! Your account is ready — start ordering delicious pizzas!`;
+
             toast.add({
-                title: `${formData.role === "vendor" ? "Vendor" : "Customer"} account created for ${email}. Welcome to PizzaHub!`,
+                title: successTitle,
                 type: "success",
             });
 
@@ -148,6 +155,8 @@ export default function SignUpPage() {
             setTimeout(() => {
                 if (formData.role === "vendor") {
                     router.push("/vendor/dashboard");
+                } else if (formData.role === "admin") {
+                    router.push("/admin/dashboard");
                 } else {
                     router.push("/");
                 }

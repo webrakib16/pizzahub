@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Save, Store } from "lucide-react";
+import Image from "next/image";
+import { Camera, Loader2, Save, Store } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
+import AvatarUploadModal from "@/components/shared/AvatarUploadModal";
 
 export default function VendorProfilePage() {
   const { data: session } = useSession();
@@ -11,6 +13,7 @@ export default function VendorProfilePage() {
 
   const [restaurantName, setRestaurantName] = useState(user?.name ?? "");
   const [saving, setSaving] = useState(false);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
 
   // This page shows vendor profile info (read from session).
   // Full profile editing requires backend wiring — currently shows current data.
@@ -42,15 +45,48 @@ export default function VendorProfilePage() {
       <div className="rounded-3xl border border-white/10 bg-[#141416] p-6 shadow-xl sm:p-8">
         {/* Avatar / logo area */}
         <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/5">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-orange-500 text-lg font-black text-white shadow-md shadow-orange-950/40">
-            {restaurantName?.[0]?.toUpperCase() ?? <Store className="size-6" />}
+          <div
+            onClick={() => setAvatarModalOpen(true)}
+            title="Click to change profile/logo photo"
+            className="relative group cursor-pointer shrink-0"
+          >
+            {user?.image ? (
+              <div className="relative size-16 rounded-2xl overflow-hidden ring-2 ring-orange-500/40">
+                <Image
+                  src={user.image}
+                  alt={restaurantName || "Vendor"}
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-orange-500 text-lg font-black text-white shadow-md shadow-orange-950/40">
+                {restaurantName?.[0]?.toUpperCase() ?? <Store className="size-6" />}
+              </div>
+            )}
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity text-white text-[9px] font-bold">
+              <Camera className="size-4 text-orange-400 mb-0.5" />
+              <span>Change</span>
+            </div>
           </div>
+
           <div>
             <p className="text-sm font-bold text-white">{restaurantName || "Your Restaurant"}</p>
             <p className="text-xs text-zinc-400 mt-0.5">{user?.email ?? ""}</p>
-            <span className="inline-block mt-1 rounded-full bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 text-[10px] font-bold text-orange-400 uppercase">
-              Vendor · Free Plan
-            </span>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="inline-block rounded-full bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 text-[10px] font-bold text-orange-400 uppercase">
+                Vendor · Free Plan
+              </span>
+              <button
+                type="button"
+                onClick={() => setAvatarModalOpen(true)}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-400 hover:text-orange-300 transition-colors"
+              >
+                <Camera className="size-3" />
+                <span>Change Photo</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -109,6 +145,13 @@ export default function VendorProfilePage() {
           </button>
         </form>
       </div>
+
+      <AvatarUploadModal
+        isOpen={avatarModalOpen}
+        onClose={() => setAvatarModalOpen(false)}
+        currentImage={user?.image}
+        currentName={user?.name}
+      />
     </div>
   );
 }

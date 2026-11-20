@@ -8,11 +8,12 @@ import {
   Shield,
   KeyRound,
   CheckCircle2,
-  Calendar,
   Lock,
+  Camera,
 } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
+import AvatarUploadModal from "@/components/shared/AvatarUploadModal";
 
 export default function CustomerProfilePage() {
   const { data: session } = useSession();
@@ -22,6 +23,7 @@ export default function CustomerProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
@@ -106,19 +108,30 @@ export default function CustomerProfilePage() {
       {/* ── User Overview Card ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 rounded-3xl border border-white/10 bg-[#141416] p-6 shadow-xl">
         <div className="flex items-center gap-4">
-          {user?.image ? (
-            <Image
-              src={user.image}
-              alt={user.name || "User Avatar"}
-              width={64}
-              height={64}
-              className="size-16 rounded-2xl object-cover ring-2 ring-orange-500/30"
-            />
-          ) : (
-            <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-orange-500 text-xl font-black text-white shadow-lg shadow-orange-950/40 ring-2 ring-white/10">
-              {getInitials(user?.name)}
+          <div
+            onClick={() => setAvatarModalOpen(true)}
+            title="Click to change profile photo"
+            className="relative group cursor-pointer"
+          >
+            {user?.image ? (
+              <Image
+                src={user.image}
+                alt={user.name || "User Avatar"}
+                width={64}
+                height={64}
+                unoptimized
+                className="size-16 rounded-2xl object-cover ring-2 ring-orange-500/30"
+              />
+            ) : (
+              <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-orange-500 text-xl font-black text-white shadow-lg shadow-orange-950/40 ring-2 ring-white/10">
+                {getInitials(user?.name)}
+              </div>
+            )}
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity text-white text-[9px] font-bold">
+              <Camera className="size-4 text-orange-400 mb-0.5" />
+              <span>Change</span>
             </div>
-          )}
+          </div>
 
           <div>
             <div className="flex items-center gap-2">
@@ -131,10 +144,15 @@ export default function CustomerProfilePage() {
               </span>
             </div>
             <p className="text-xs text-zinc-400 mt-1">{user?.email}</p>
-            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 mt-1">
-              <Calendar className="size-3 text-orange-500" />
-              <span>Joined {memberSince}</span>
-            </div>
+            <p className="text-[11px] text-zinc-500 mt-0.5">Joined {memberSince}</p>
+            <button
+              type="button"
+              onClick={() => setAvatarModalOpen(true)}
+              className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-orange-400 hover:text-orange-300 transition-colors"
+            >
+              <Camera className="size-3" />
+              <span>Change Photo</span>
+            </button>
           </div>
         </div>
       </div>
@@ -256,6 +274,13 @@ export default function CustomerProfilePage() {
           </div>
         </form>
       </div>
+
+      <AvatarUploadModal
+        isOpen={avatarModalOpen}
+        onClose={() => setAvatarModalOpen(false)}
+        currentImage={user?.image}
+        currentName={user?.name}
+      />
     </div>
   );
 }

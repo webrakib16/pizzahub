@@ -11,7 +11,9 @@ interface MenuItemDocument {
   description: string;
   price: number;
   location: string;
+  primaryImage?: string;
   image: string;
+  images: string[];
   status: MenuItemStatus;
   isActive: boolean;
   createdAt: Date;
@@ -29,6 +31,9 @@ function serialize(doc: MenuItemDocument): MenuItem {
     return new Date().toISOString();
   };
 
+  const primary = doc.primaryImage || doc.image;
+  const allImages = doc.images?.length ? doc.images : [primary];
+
   return {
     id: doc._id.toString(),
     vendorId: doc.vendorId,
@@ -38,7 +43,9 @@ function serialize(doc: MenuItemDocument): MenuItem {
     description: doc.description,
     price: doc.price,
     location: doc.location,
-    image: doc.image,
+    primaryImage: primary,
+    image: primary,
+    images: allImages,
     status: doc.status,
     isActive: doc.isActive ?? true,
     createdAt: formatTime(doc.createdAt),
@@ -87,6 +94,9 @@ export async function createMenuItem(
     }
 
     const now = new Date();
+    const primaryImg = input.primaryImage || input.image;
+    const allImages = input.images?.length ? input.images : [primaryImg];
+
     const doc: MenuItemDocument = {
       _id: new ObjectId(),
       vendorId,
@@ -96,7 +106,9 @@ export async function createMenuItem(
       description: input.description,
       price: input.price,
       location: input.location,
-      image: input.image,
+      primaryImage: primaryImg,
+      image: primaryImg,
+      images: allImages,
       status: "pending", // Default status is Pending until Admin approves
       isActive: true,
       createdAt: now,

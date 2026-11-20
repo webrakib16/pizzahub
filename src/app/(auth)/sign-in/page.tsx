@@ -63,12 +63,17 @@ export default function SignInPage() {
       });
 
       if (signInError) {
-        // 401 mane: ei email diye kono account nei, ba password mileni
+        // 403 / ACCOUNT_BLOCKED: admin has blocked this user
+        const isBlocked =
+          signInError.status === 403 ||
+          (signInError as { code?: string }).code === "ACCOUNT_BLOCKED";
+
         toast.add({
-          title:
-            signInError.status === 401
-              ? "Incorrect email or password. Use the exact email you signed up with — passwords are case-sensitive."
-              : signInError.message || "Could not sign you in. Please try again.",
+          title: isBlocked
+            ? "🚫 Your account has been blocked by an administrator. Please contact support."
+            : signInError.status === 401
+            ? "Incorrect email or password. Use the exact email you signed up with — passwords are case-sensitive."
+            : signInError.message || "Could not sign you in. Please try again.",
           type: "error",
         });
         setIsSubmitting(false);
@@ -78,15 +83,29 @@ export default function SignInPage() {
       // Learning/debug: Better Auth sign-in response theke user object console e dekhao
       console.log("[PizzaHub] sign-in successful — user data:", signInData?.user);
 
+      // Role-aware redirect after sign-in
+      const role = (signInData?.user as { role?: string } | null | undefined)?.role;
+      const userName = signInData?.user?.name ?? "there";
+
+      const welcomeTitle =
+        role === "vendor"
+          ? `🍕 Welcome back, ${userName}! Manage your restaurant from the Vendor Portal.`
+          : role === "admin"
+          ? `🛡️ Welcome back, ${userName}! You're logged into the Admin Panel.`
+          : `🎉 Welcome back, ${userName}! Ready to order some delicious pizza?`;
+
       toast.add({
-        title: signInData?.user?.name
-          ? `Welcome back, ${signInData.user.name}!`
-          : "Signed in successfully. Welcome back!",
+        title: welcomeTitle,
         type: "success",
       });
-
       setTimeout(() => {
-        router.push("/");
+        if (role === "vendor") {
+          router.push("/vendor/dashboard");
+        } else if (role === "admin") {
+          router.push("/admin/dashboard");
+        } else {
+          router.push("/");
+        }
       }, 1000);
     } catch {
       toast.add({

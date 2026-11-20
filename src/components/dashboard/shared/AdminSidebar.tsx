@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Receipt,
+  Settings,
   ShieldCheck,
   UtensilsCrossed,
   Users,
@@ -42,6 +43,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { label: "Manage Users", href: "/admin/users", icon: Users },
   { label: "Manage Menu Items", href: "/admin/menu", icon: UtensilsCrossed },
   { label: "Transactions", href: "/admin/transactions", icon: Receipt },
+  { label: "Profile Settings", href: "/admin/profile", icon: Settings },
 ];
 
 const menuButtonClasses =
@@ -169,6 +171,7 @@ export default function AdminSidebar() {
               alt={displayName}
               width={36}
               height={36}
+              unoptimized
               className="size-9 shrink-0 rounded-xl object-cover ring-1 ring-white/10"
             />
           ) : (

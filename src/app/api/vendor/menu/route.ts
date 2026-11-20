@@ -32,12 +32,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { name, category, description, price, location, image } =
+  const { name, category, description, price, location, image, primaryImage, images } =
     body as Record<string, unknown>;
 
-  if (!name || !category || !description || !price || !location || !image) {
+  const resolvedImages = Array.isArray(images) && images.length > 0
+    ? (images as unknown[]).map(String).filter((url) => Boolean(url.trim()))
+    : [];
+
+  const resolvedPrimary = String(
+    primaryImage || image || resolvedImages[0] || ""
+  ).trim();
+
+  // Ensure primary image is at the front of images list if not already
+  const finalImages = resolvedImages.length > 0
+    ? [resolvedPrimary, ...resolvedImages.filter((img) => img !== resolvedPrimary)]
+    : [resolvedPrimary];
+
+  if (!name || !category || !description || !price || !location || !resolvedPrimary) {
     return NextResponse.json(
-      { error: "All fields are required: name, category, description, price, location, image" },
+      { error: "All fields are required: name, category, description, price, location, and at least one image" },
       { status: 400 }
     );
   }
@@ -58,7 +71,9 @@ export async function POST(req: NextRequest) {
       description: String(description),
       price: Number(price),
       location: String(location),
-      image: String(image),
+      primaryImage: resolvedPrimary,
+      image: resolvedPrimary,
+      images: finalImages,
     },
     false
   );

@@ -4,18 +4,14 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Heart,
   MapPin,
   Store,
-  Tag,
-  X,
-  ShoppingBag,
   ArrowRight,
   ChevronLeft,
   ChevronRight,
-
 } from "lucide-react";
 import { FEATURED_MENU_ITEMS, FeaturedMenuItem } from "@/data/featured-menu";
 import { useWishlist } from "@/hooks/use-wishlist";
@@ -50,7 +46,6 @@ export default function FeaturedMenuItems() {
   const items: FeaturedMenuItem[] = FEATURED_MENU_ITEMS;
   const { isInWishlist, toggleWishlistItem } = useWishlist();
   const [activeRotation, setActiveRotation] = useState(0);
-  const [modalItem, setModalItem] = useState<FeaturedMenuItem | null>(null);
 
   const toggleFavorite = (item: FeaturedMenuItem, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -66,20 +61,14 @@ export default function FeaturedMenuItems() {
     });
   };
 
-  // "View Details" always navigates — works whether card is at center or not
-  const handleViewDetails = (e: React.MouseEvent, itemId: string) => {
-    e.stopPropagation();
-    router.push(`/menu/${itemId}`);
-  };
-
   // Determine which item is currently front-facing
   const activeIndex =
     Math.round((-activeRotation / ANGLE_PER_ITEM) % ITEM_COUNT + ITEM_COUNT) % ITEM_COUNT;
 
   const handleCardClick = (index: number, item: FeaturedMenuItem) => {
     if (activeIndex === index) {
-      // Already front-facing: open modal
-      setModalItem(item);
+      // Already front-facing: go directly to details page
+      router.push(`/menu/${item.id}`);
     } else {
       // Rotate the cylinder so clicked card comes directly to front (0 deg)
       let diff = index - activeIndex;
@@ -257,14 +246,14 @@ export default function FeaturedMenuItems() {
 
                         {/* Bottom CTA Button */}
                         <div className="mt-2 pt-1.5 border-t border-white/5">
-                          <button
-                            type="button"
-                            onClick={(e) => handleViewDetails(e, item.id)}
+                          <Link
+                            href={`/menu/${item.id}`}
+                            onClick={(e) => e.stopPropagation()}
                             className="flex w-full items-center justify-center gap-1.5 h-8 sm:h-9 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 text-white text-xs font-bold shadow-md shadow-orange-950/40 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
                           >
                             <span>View Details</span>
                             <ArrowRight className="size-3" />
-                          </button>
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -309,100 +298,6 @@ export default function FeaturedMenuItems() {
           </Link>
         </div>
       </div>
-
-      {/* ── Exact In-Page Card Detail Modal (Popup) ── */}
-      <AnimatePresence>
-        {modalItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setModalItem(null)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20 }}
-              transition={{ type: "spring", stiffness: 300, damping: 28 }}
-              className="relative w-full max-w-3xl rounded-3xl bg-[#141416] border border-white/10 shadow-2xl p-6 sm:p-8 z-10 overflow-hidden"
-            >
-              <button
-                type="button"
-                onClick={() => setModalItem(null)}
-                aria-label="Close modal"
-                className="absolute top-4 right-4 z-20 size-9 rounded-full bg-black/50 border border-white/15 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-black/80 transition-colors"
-              >
-                <X className="size-5" />
-              </button>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-center">
-                <div className="relative h-64 sm:h-80 w-full rounded-2xl overflow-hidden bg-zinc-900 border border-white/10">
-                  <Image
-                    src={modalItem.image}
-                    alt={modalItem.name}
-                    fill
-                    priority
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 400px"
-                  />
-                </div>
-
-                <div>
-                  <span className="inline-block px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-semibold mb-3">
-                    {modalItem.category}
-                  </span>
-
-                  <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
-                    {modalItem.name}
-                  </h3>
-
-                  <p className="text-3xl font-black text-orange-500 mt-2.5">
-                    ৳ {modalItem.price}
-                  </p>
-
-                  <p className="text-zinc-300 text-sm mt-3 leading-relaxed">
-                    {modalItem.vendorInfo}
-                  </p>
-
-                  <div className="mt-5 space-y-2 border-t border-white/10 pt-4 text-xs sm:text-sm text-zinc-400">
-                    <div className="flex items-center gap-2">
-                      <Store className="size-4 text-orange-500 shrink-0" />
-                      <span>
-                        Restaurant: <strong className="text-white">{modalItem.restaurantName}</strong>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="size-4 text-orange-500 shrink-0" />
-                      <span>
-                        Location: <strong className="text-white">{modalItem.location}</strong>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Tag className="size-4 text-orange-500 shrink-0" />
-                      <span>
-                        Status: <strong className="text-emerald-400 capitalize">{modalItem.status}</strong>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                    <Link
-                      href={`/menu/${modalItem.id}`}
-                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-orange-500 text-white font-bold text-sm shadow-lg shadow-orange-950/40 hover:opacity-95 active:scale-95 transition-all text-center"
-                    >
-                      <ShoppingBag className="size-4" />
-                      <span>Order This Item</span>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </section>
   );
 }

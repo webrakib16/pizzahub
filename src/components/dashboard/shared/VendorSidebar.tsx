@@ -179,6 +179,7 @@ export default function VendorSidebar() {
               alt={displayName}
               width={36}
               height={36}
+              unoptimized
               className="size-9 shrink-0 rounded-xl object-cover ring-1 ring-white/10"
             />
           ) : (

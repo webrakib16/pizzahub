@@ -172,10 +172,13 @@ export default function MenuItemDetailPage({ params }: PageProps) {
     price: currentProduct.price,
     restaurantName: currentProduct.restaurantName,
     location: currentProduct.location,
-    description: currentProduct.description,
+    description:
+      currentProduct.description ||
+      (currentProduct as unknown as { vendorInfo?: string }).vendorInfo ||
+      "Authentic freshly baked pizza crafted with premium mozzarella and fresh ingredients.",
     image: currentProduct.image,
-    rating: currentProduct.rating,
-    reviews: currentProduct.reviews,
+    rating: currentProduct.rating ?? 4.8,
+    reviews: currentProduct.reviews ?? 250,
     badge: currentProduct.badge || "Bestseller",
     isActive: currentProduct.isActive !== false,
     status: currentProduct.status || "approved",
@@ -193,14 +196,17 @@ export default function MenuItemDetailPage({ params }: PageProps) {
     (userName.toLowerCase() === item.restaurantName.toLowerCase() ||
       userEmail.toLowerCase().includes(item.restaurantName.toLowerCase().replace(/\s+/g, "")));
 
-  // ── Gallery Images (5 high-resolution photography assets) ─────────────────
-  const galleryImages = [
-    item.image,
-    "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1000&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1000&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1604382355076-af4b0eb60143?w=1000&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=1000&auto=format&fit=crop&q=80",
-  ];
+  // ── Gallery Images (Supports uploaded images array or fallback photography) ─
+  const productImages = (currentProduct as unknown as { images?: string[] })?.images;
+  const galleryImages = Array.isArray(productImages) && productImages.length > 0
+    ? productImages
+    : [
+        item.image,
+        "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1000&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1000&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1604382355076-af4b0eb60143?w=1000&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=1000&auto=format&fit=crop&q=80",
+      ];
 
   // ── Dynamic Pricing Calculation (Unit price + Total price) ─────────────────
   const sizeOffset = SIZE_OPTIONS.find((s) => s.value === selectedSize)?.priceOffset || 0;

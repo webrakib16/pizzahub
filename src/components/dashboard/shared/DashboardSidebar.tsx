@@ -175,9 +175,20 @@ const DashboardSidebar = () => {
         {user ? (
           <>
             <div className="flex items-center gap-2.5 rounded-xl px-1 py-1.5 group-data-[collapsible=icon]:justify-center">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-600 to-orange-500 text-xs font-black text-white">
-                {initials}
-              </span>
+              {user.image ? (
+                <Image
+                  src={user.image}
+                  alt={displayName}
+                  width={36}
+                  height={36}
+                  unoptimized
+                  className="size-9 shrink-0 rounded-full object-cover ring-1 ring-white/10"
+                />
+              ) : (
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-600 to-orange-500 text-xs font-black text-white">
+                  {initials}
+                </span>
+              )}
               <span className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
                 <span className="truncate text-sm font-semibold text-white">
                   {displayName}

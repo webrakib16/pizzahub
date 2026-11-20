@@ -29,7 +29,7 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       role: {
-        type: ["customer","vendor","admin"],
+        type: ["customer", "vendor", "admin"],
         required: false,
         defaultValue: "user",
         input: true,
@@ -39,15 +39,37 @@ export const auth = betterAuth({
   socialProviders: {
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
       ? {
-          google: {
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          },
-        }
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        },
+      }
       : {}),
   },
- 
+
   databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          // Block check: if the user is blocked, reject session creation entirely.
+          // Better Auth stores user _id as a plain string in MongoDB (not ObjectId).
+          const userDoc = await db
+            .collection("user")
+            .findOne(
+              { id: session.userId },
+              { projection: { blocked: 1 } }
+            );
+
+          if (userDoc?.blocked) {
+            throw new APIError("FORBIDDEN", {
+              message:
+                "Your account has been blocked by an administrator. Please contact support.",
+              code: "ACCOUNT_BLOCKED",
+            });
+          }
+        },
+      },
+    },
     user: {
       create: {
         before: async (user) => {
@@ -74,7 +96,12 @@ export const auth = betterAuth({
             });
           }
 
-          const role = user.role === "vendor" ? "vendor" : "customer";
+          const role =
+            user.role === "vendor"
+              ? "vendor"
+              : user.role === "admin"
+                ? "admin"
+                : "customer";
           return { data: { ...user, email, role } };
         },
       },

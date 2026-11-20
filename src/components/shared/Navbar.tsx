@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
+  Camera,
   ChevronDown,
   Heart,
   LayoutDashboard,
@@ -19,12 +20,21 @@ import { toast } from "@/components/ui/toast";
 import { signOut, useSession } from "@/lib/auth-client";
 import { useCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
+import AnnouncementMarquee from "./AnnouncementMarquee";
+import AvatarUploadModal from "./AvatarUploadModal";
 
 // Role onujayi dashboard er path
 function getDashboardHref(role?: string | null) {
   if (role === "vendor") return "/vendor/dashboard";
   if (role === "admin") return "/admin/dashboard";
   return "/dashboard";
+}
+
+// Role onujayi profile settings er path
+function getProfileSettingsHref(role?: string | null) {
+  if (role === "vendor") return "/vendor/profile";
+  if (role === "admin") return "/admin/profile";
+  return "/profile";
 }
 
 // Nav links: Home removed, Browse Menu + Dashboard + Partnership
@@ -56,14 +66,15 @@ export default function Navbar() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const user = session?.user;
   const isLoggedIn = Boolean(user);
   const navLinks = getNavLinks(user?.role);
-  const isHomePage = pathname === "/";
-  const shouldShowFloatingWishlist = !isHomePage && wishlistCount > 0;
+  // Floating Wishlist button shows on all pages (including Homepage) whenever user has 1+ items in wishlist
+  const shouldShowFloatingWishlist = wishlistCount > 0;
 
   // Dropdown er baire click ba Escape chaple dropdown bondho hoy
   useEffect(() => {
@@ -145,7 +156,10 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-white/5 bg-zinc-950/95 backdrop-blur-md">
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
+        {/* Top Announcement Marquee Bar */}
+        <AnnouncementMarquee />
+
+        <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
         {/* Logo: icon image + text lockup (source logo er white bg remove kora) */}
         <Link href="/" className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <Image
@@ -257,14 +271,37 @@ export default function Navbar() {
                 >
                   {/* User info */}
                   <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3.5">
-                    {avatar}
-                    <div className="min-w-0">
+                    <div
+                      onClick={() => {
+                        setAvatarModalOpen(true);
+                        setProfileOpen(false);
+                      }}
+                      title="Tap to change photo"
+                      className="relative group/avatar cursor-pointer shrink-0"
+                    >
+                      {avatar}
+                      <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity text-orange-400">
+                        <Camera className="size-3.5" />
+                      </div>
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-white">
                         {user.name}
                       </p>
                       <p className="truncate text-xs text-zinc-400">
                         {user.email}
                       </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAvatarModalOpen(true);
+                          setProfileOpen(false);
+                        }}
+                        className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-orange-400 hover:text-orange-300 transition-colors cursor-pointer"
+                      >
+                        <Camera className="size-3" />
+                        <span>Change photo</span>
+                      </button>
                     </div>
                   </div>
 
@@ -280,7 +317,7 @@ export default function Navbar() {
                       Dashboard
                     </Link>
                     <Link
-                      href="/profile-settings"
+                      href={getProfileSettingsHref(user.role)}
                       role="menuitem"
                       onClick={closeAll}
                       className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:bg-white/5 hover:text-orange-500"
@@ -450,9 +487,8 @@ export default function Navbar() {
 
       {/*
         Floating Wishlist button:
-        • Hidden on Home page (pathname === "/")
+        • Visible on all pages (including Home page) whenever user has saved 1+ products in wishlist
         • Hidden when wishlistCount === 0 (no saved products)
-        • Visible ONLY when user has saved 1+ products in wishlist
         • Mobile: Vertical right-edge tab (mirrors mobile Resume reference)
         • Desktop: Fixed horizontal pill right-aligned with max-w-7xl content container
           (exactly below Logout button and aligned with product cards, as marked in reference)
@@ -503,6 +539,16 @@ export default function Navbar() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Profile Photo Change Modal */}
+      {isLoggedIn && (
+        <AvatarUploadModal
+          isOpen={avatarModalOpen}
+          onClose={() => setAvatarModalOpen(false)}
+          currentImage={user?.image}
+          currentName={user?.name}
+        />
       )}
     </>
   );
