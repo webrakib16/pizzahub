@@ -157,8 +157,8 @@ export default function Footer() {
       {/* Bottom Bar */}
       <div className="border-t border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-zinc-500 text-sm text-center sm:text-left" suppressHydrationWarning>
-            &copy; {year} PizzaHub. All rights reserved. Made with ❤️ for pizza lovers.
+          <p className="text-zinc-500 text-sm text-center sm:text-left">
+            &copy; {year} PizzaHub. All rights reserved. Made with <span className="text-red-500 inline-block align-middle" aria-label="love">♥</span> for pizza lovers.
           </p>
           <div className="flex items-center gap-4">
             <Link href="/privacy" className="text-zinc-500 text-xs hover:text-zinc-300 transition-colors">

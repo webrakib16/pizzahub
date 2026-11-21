@@ -1,3 +1,5 @@
+import { ObjectId } from "mongodb";
+import { getDb } from "@/lib/mongodb";
 import { MENU_ITEMS } from "@/data/menu-data";
 import type { DeliveryLocation, OrderItem } from "@/types/order";
 
@@ -18,6 +20,9 @@ const CRUST_OFFSETS: Record<string, number> = {
   "Cheese Burst": 100,
   "Stuffed Crust": 120,
 };
+
+const DEFAULT_SIZES = ['Regular (8")', 'Medium (10")', 'Large (12")'];
+const DEFAULT_CRUSTS = ["Classic Crust", "Thin Crust", "Cheese Burst", "Stuffed Crust"];
 
 /** The menu detail page labels plain crust as "Classic". */
 function normalizeCrust(value: string): string {
@@ -44,7 +49,7 @@ interface RawOrderItem {
  * Rebuilds the cart on the server so prices, vendor names, and options can
  * never be supplied by the client.
  */
-export function priceOrderItems(rawItems: unknown): PriceResult {
+export async function priceOrderItems(rawItems: unknown): Promise<PriceResult> {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     return { ok: false, error: "Your cart is empty." };
   }
@@ -60,9 +65,40 @@ export function priceOrderItems(rawItems: unknown): PriceResult {
       return { ok: false, error: "One of the cart items is invalid." };
     }
 
-    const menuItem = MENU_ITEMS.find((item) => item.id === raw.menuItemId);
+    let menuItem = MENU_ITEMS.find((item) => item.id === raw.menuItemId);
+    let allowedSizes: string[] = menuItem?.sizes ? [...menuItem.sizes] : DEFAULT_SIZES;
+    let allowedCrusts: string[] = menuItem?.crusts ? [...menuItem.crusts] : DEFAULT_CRUSTS;
+    let resolvedItem = menuItem
+      ? {
+          id: menuItem.id,
+          name: menuItem.name,
+          image: menuItem.image,
+          price: menuItem.price,
+          vendorName: menuItem.restaurantName,
+        }
+      : null;
 
-    if (!menuItem) {
+    if (!resolvedItem && ObjectId.isValid(raw.menuItemId)) {
+      try {
+        const db = getDb();
+        const doc = await db
+          .collection("menuItems")
+          .findOne({ _id: new ObjectId(raw.menuItemId) });
+        if (doc) {
+          resolvedItem = {
+            id: doc._id.toString(),
+            name: doc.name,
+            image: doc.primaryImage || doc.image || "",
+            price: Number(doc.price) || 0,
+            vendorName: doc.vendorName || "PizzaHub Partner",
+          };
+        }
+      } catch {
+        // DB error or collection unavailable
+      }
+    }
+
+    if (!resolvedItem) {
       return { ok: false, error: "One of the cart items is no longer available." };
     }
 
@@ -76,8 +112,8 @@ export function priceOrderItems(rawItems: unknown): PriceResult {
     const size = typeof raw.size === "string" && raw.size ? raw.size : undefined;
 
     if (size) {
-      if (!menuItem.sizes.includes(size as (typeof menuItem.sizes)[number])) {
-        return { ok: false, error: `Invalid size for ${menuItem.name}.` };
+      if (allowedSizes.length > 0 && !allowedSizes.includes(size)) {
+        return { ok: false, error: `Invalid size for ${resolvedItem.name}.` };
       }
       sizeOffset = SIZE_OFFSETS[size] ?? 0;
     }
@@ -88,18 +124,18 @@ export function priceOrderItems(rawItems: unknown): PriceResult {
     const crust = rawCrust ? normalizeCrust(rawCrust) : undefined;
 
     if (crust) {
-      if (!menuItem.crusts.includes(crust as (typeof menuItem.crusts)[number])) {
-        return { ok: false, error: `Invalid crust for ${menuItem.name}.` };
+      if (allowedCrusts.length > 0 && !allowedCrusts.includes(crust)) {
+        return { ok: false, error: `Invalid crust for ${resolvedItem.name}.` };
       }
       crustOffset = CRUST_OFFSETS[crust] ?? 0;
     }
 
     items.push({
-      menuItemId: menuItem.id,
-      name: menuItem.name,
-      image: menuItem.image,
-      vendorName: menuItem.restaurantName,
-      unitPrice: menuItem.price + sizeOffset + crustOffset,
+      menuItemId: resolvedItem.id,
+      name: resolvedItem.name,
+      image: resolvedItem.image,
+      vendorName: resolvedItem.vendorName,
+      unitPrice: resolvedItem.price + sizeOffset + crustOffset,
       quantity,
       size,
       crust,

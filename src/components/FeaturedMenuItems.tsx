@@ -109,7 +109,11 @@ export default function FeaturedMenuItems() {
     let isMounted = true;
     async function loadFeatured() {
       try {
-        const res = await fetch("/api/menu/public");
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        let res = await fetch(`${apiUrl}/api/menu/public`);
+        if (!res.ok) {
+          res = await fetch("/api/menu/public");
+        }
         if (res.ok) {
           const allItems = (await res.json()) as PublicMenuItemDto[];
           if (isMounted && Array.isArray(allItems)) {

@@ -37,8 +37,10 @@ interface ImageItem {
 
 export default function AddMenuItemForm({
   activeCount,
+  isPremium = false,
 }: {
   activeCount: number;
+  isPremium?: boolean;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -60,7 +62,7 @@ export default function AddMenuItemForm({
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const atLimit = activeCount >= 3;
+  const atLimit = !isPremium && activeCount >= 3;
 
   const validate = () => {
     const errs: Record<string, string> = {};

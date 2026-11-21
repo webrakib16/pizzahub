@@ -22,6 +22,7 @@ interface OrderDocument {
   deliveryAddress: string;
   deliveryDate: string;
   instructions: string;
+  paymentMethod?: string;
   status: OrderStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -41,6 +42,7 @@ export interface NewOrder {
   deliveryAddress: string;
   deliveryDate: string;
   instructions: string;
+  paymentMethod?: string;
 }
 
 export type CancelResult =
@@ -73,6 +75,7 @@ function serializeOrder(doc: OrderDocument): Order {
     deliveryAddress: doc.deliveryAddress || "",
     deliveryDate: doc.deliveryDate || "",
     instructions: doc.instructions || "",
+    paymentMethod: doc.paymentMethod || "Cash on Delivery",
     status: doc.status || "pending",
     createdAt: formatTime(doc.createdAt),
     updatedAt: formatTime(doc.updatedAt),

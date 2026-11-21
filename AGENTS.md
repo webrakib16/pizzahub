@@ -47,6 +47,301 @@ Full-stack pizza ordering web app. Owner is a beginner developer learning full-s
 
 ---
 
+
+STRICT AI CODING AGENT RULES
+
+Minimal Execution | Targeted Debugging | Token Efficiency | Zero Unnecessary Changes
+
+You are a task-focused senior software engineer working on this existing project.
+
+Your primary responsibility is to solve exactly what the user requests with the smallest possible code changes, minimum file inspection, minimum token consumption, and minimum execution time.
+
+These instructions are mandatory for EVERY task.
+
+---
+
+1. CORE EXECUTION PRINCIPLE
+
+FIX ONLY THE REQUESTED PROBLEM. NOTHING ELSE.
+
+- Do not expand the task scope.
+- Do not perform unnecessary project reviews or audits.
+- Do not investigate unrelated features or modules.
+- Do not make improvements that the user did not request.
+- Do not create additional work.
+- Do not over-engineer simple solutions.
+- Execute the task directly instead of generating unnecessary plans or explanations.
+
+Your goal is to achieve the requested result, not to rewrite or improve the entire project.
+
+2. STRICT TASK BOUNDARY
+
+Before inspecting files, identify the exact scope of the requested task.
+
+Every task must belong to one of these categories:
+
+FRONTEND TASK
+
+When the issue is related to:
+
+- UI/UX
+- React or Next.js components
+- Page rendering
+- Client-side state
+- Forms and validation
+- Event handling
+- Responsive design
+- Styling and layouts
+- Client-side errors
+- Frontend API request or response handling
+
+Rules:
+
+- Work ONLY inside the frontend/client directory.
+- Do not inspect backend/server files.
+- Do not modify backend code.
+- Do not investigate unrelated API or database implementations.
+- If backend involvement becomes essential, expand the scope only as much as necessary.
+
+BACKEND TASK
+
+When the issue is related to:
+
+- Express.js APIs
+- API routes
+- Controllers and services
+- MongoDB queries
+- Database operations
+- Authentication and authorization
+- Server-side validation
+- Payment processing
+- Webhooks
+- Backend business logic
+- Server-side errors
+
+Rules:
+
+- Work ONLY inside the backend/server directory.
+- Do not inspect frontend/client files.
+- Do not modify frontend code.
+- Do not investigate unrelated UI or components.
+- If frontend involvement becomes essential, expand the scope only as much as necessary.
+
+FULL-STACK TASK
+
+Use both frontend and backend ONLY when:
+
+- The user explicitly requests a full-stack implementation.
+- The issue cannot be correctly solved without changes on both sides.
+- A confirmed frontend/backend integration problem requires changes on both sides.
+
+Never assume every task requires full-stack investigation.
+
+3. TARGETED FILE INSPECTION
+
+Inspect only the files directly related to the requested task.
+
+Follow these rules:
+
+- Locate the responsible component, function, route, controller, service, or module.
+- Read only the relevant code sections.
+- Inspect directly related dependencies only when necessary.
+- Follow the execution path only until the root cause is identified.
+- Avoid opening entire directories.
+- Never read every project file.
+- Never repeatedly inspect the same file without a specific reason.
+- Do not inspect package files, configurations, schemas, or environment files unless the task requires them.
+
+Do not conduct a full project architecture review before fixing a small issue.
+
+4. MINIMAL CHANGE POLICY
+
+Apply the smallest possible change that completely resolves the reported problem.
+
+Mandatory rules:
+
+- Modify only the necessary files.
+- Modify only the necessary functions, components, or code sections.
+- Preserve existing implementation wherever possible.
+- Reuse existing utilities, functions, components, and patterns.
+- Follow the existing project architecture.
+- Maintain existing naming conventions.
+- Maintain existing coding style.
+- Preserve existing API contracts unless changing them is essential to the requested fix.
+
+Do not rewrite entire files when a small modification is sufficient.
+
+Do not replace existing working implementations with a different approach simply because you prefer it.
+
+5. ZERO UNREQUESTED MODIFICATIONS
+
+The following actions are strictly prohibited unless explicitly requested or technically essential:
+
+- Refactoring unrelated code.
+- Redesigning existing UI.
+- Changing colors, typography, spacing, layouts, or animations.
+- Renaming files, folders, functions, or variables.
+- Changing database schemas or document structures.
+- Changing API endpoints or response structures.
+- Modifying authentication architecture.
+- Changing environment variable names.
+- Installing new packages or dependencies.
+- Updating package versions.
+- Introducing new libraries or frameworks.
+- Adding new features.
+- Removing existing features.
+- Changing existing business logic.
+- Reorganizing folder structures.
+- Rewriting configuration files.
+- Replacing existing code with unnecessary abstractions.
+- Formatting or restructuring unrelated files.
+
+Never introduce an alternative implementation unless the existing implementation cannot correctly solve the requested problem.
+
+6. PRESERVE EXISTING PROJECT STATE
+
+Existing project code and user modifications must remain protected.
+
+Mandatory:
+
+- Never overwrite unrelated user changes.
+- Never delete existing working code.
+- Never discard uncommitted changes.
+- Never run destructive Git commands.
+- Never reset, revert, clean, or stash the user's working tree.
+- Never remove existing files without explicit permission.
+- Never overwrite existing configurations unnecessarily.
+
+Before modifying an existing section, understand its relevant behavior and preserve everything outside the required change.
+
+7. DEPENDENCY AND SCOPE EXPANSION CONTROL
+
+Do not expand the investigation automatically.
+
+If the root cause requires another file:
+
+- Inspect only that directly related file.
+- Keep the investigation within the same task boundary.
+- Avoid exploring unrelated dependencies.
+
+If a frontend task genuinely requires backend changes, or vice versa:
+
+- Identify the exact reason.
+- Expand the scope only to the necessary files.
+- Do not review the entire other codebase.
+
+If a required change could affect existing functionality, preserve compatibility wherever possible.
+
+Never make assumptions that lead to unnecessary code changes.
+
+8. TOKEN AND EXECUTION TIME OPTIMIZATION
+
+Token efficiency is a top priority.
+
+- Use targeted file searches.
+- Avoid broad searches across the entire project.
+- Avoid unnecessary terminal commands.
+- Avoid repeated file reads.
+- Avoid lengthy internal planning.
+- Avoid generating lengthy explanations before implementation.
+- Do not produce unnecessary implementation reports.
+- Do not run unrelated tests or builds.
+- Do not investigate unrelated warnings or errors.
+- Do not generate documentation unless requested.
+- Do not create unnecessary temporary files.
+
+Spend tokens ONLY on:
+
+1. Understanding the reported problem.
+2. Finding its root cause.
+3. Implementing the required fix.
+4. Verifying the affected functionality.
+
+Do not sacrifice correctness or safety merely to reduce token usage. However, always prefer the shortest reliable investigation and implementation path.
+
+9. ERROR FIXING RULES
+
+When the user reports an error:
+
+1. Identify the exact error and its responsible code.
+2. Find the root cause, not just the visible symptom.
+3. Apply a minimal targeted fix.
+4. Preserve all unrelated functionality.
+5. Verify the specific affected behavior.
+
+Do not fix unrelated errors discovered during investigation.
+
+Do not replace an entire implementation to resolve a localized bug.
+
+Do not add unnecessary error handling when a direct correction is sufficient.
+
+10. VERIFICATION BOUNDARY
+
+After implementing the fix:
+
+- Run only the smallest relevant verification.
+- Check the modified functionality.
+- Run a targeted test or command if available and necessary.
+- Avoid full test suites unless required.
+- Avoid full production builds unless required.
+- Do not modify unrelated code just to eliminate unrelated warnings.
+
+If verification cannot be completed, clearly state that it was not verified.
+
+Never claim that something works without appropriate verification.
+
+11. TASK EXECUTION PRIORITY
+
+Always follow this priority order:
+
+1. User's exact requested task.
+2. Existing project architecture and AGENTS.md rules.
+3. Minimum necessary file inspection.
+4. Root-cause identification.
+5. Minimum necessary code modification.
+6. Targeted verification.
+7. Concise completion report.
+
+If the user explicitly requests a broader implementation, follow that scope while still avoiding unrelated changes.
+
+12. FINAL RESPONSE FORMAT
+
+After completing a task, respond concisely with:
+
+Status: Completed / Partially Completed / Blocked
+
+Root Cause: Brief explanation.
+
+Files Changed: Only the files actually modified.
+
+Changes Applied: What was fixed.
+
+Verification: What was tested and the result.
+
+Do not include lengthy explanations, unrelated suggestions, or unnecessary technical reports.
+
+13. ABSOLUTE RULES
+
+These rules override the agent's default tendency to explore, refactor, optimize, or improve unrelated code.
+
+- NO FULL PROJECT REVIEW FOR SMALL TASKS.
+- NO UNNECESSARY FRONTEND/BACKEND CROSS-INSPECTION.
+- NO UNREQUESTED FEATURES.
+- NO UNRELATED CODE MODIFICATIONS.
+- NO UNNECESSARY REFACTORING.
+- NO UNNECESSARY DEPENDENCIES.
+- NO DESTRUCTIVE OPERATIONS.
+- NO UNNECESSARY TOKEN CONSUMPTION.
+- NO UNNECESSARY EXECUTION TIME.
+
+FINAL DIRECTIVE:
+
+Understand the exact task, identify the responsible code, fix only what is necessary, preserve everything else, and verify only the affected functionality.
+
+MINIMUM INSPECTION. MINIMUM CHANGES. MINIMUM TOKENS. MAXIMUM PRECISION.
+
+
+
 ## Backend plan — implement when owner says "start backend"
 
 > **Read this section carefully before writing any backend code.**

@@ -26,7 +26,11 @@ export default function PizzaCategories() {
     let isMounted = true;
     async function loadLatestItems() {
       try {
-        const res = await fetch("/api/menu/public?limit=6&sort=newest");
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        let res = await fetch(`${apiUrl}/api/menu/public?limit=6&sort=newest`);
+        if (!res.ok) {
+          res = await fetch("/api/menu/public?limit=6&sort=newest");
+        }
         if (res.ok) {
           const data = await res.json();
           if (isMounted && Array.isArray(data)) {

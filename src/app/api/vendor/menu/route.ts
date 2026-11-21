@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getVendorMenuItems, createMenuItem } from "@/lib/menu-items";
 import { getVendorShop, isShopProfileComplete } from "@/lib/vendor-shops";
+import { isVendorPremium } from "@/lib/vendor-premium";
 
 // GET /api/vendor/menu — list vendor's own items
 export async function GET() {
@@ -75,6 +76,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const isPremium = await isVendorPremium(user.id);
+
   const result = await createMenuItem(
     user.id,
     vendorShopName,
@@ -88,7 +91,7 @@ export async function POST(req: NextRequest) {
       image: resolvedPrimary,
       images: finalImages,
     },
-    false
+    isPremium
   );
 
   if (!result.ok) {

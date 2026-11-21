@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireVendor } from "@/lib/session";
 import { getActiveVendorCount } from "@/lib/menu-items";
 import { isShopProfileComplete } from "@/lib/vendor-shops";
+import { isVendorPremium } from "@/lib/vendor-premium";
 import AddMenuItemForm from "./AddMenuItemForm";
 
 export default async function AddMenuItemPage() {
@@ -13,10 +14,11 @@ export default async function AddMenuItemPage() {
     redirect("/vendor/profile?complete_shop=true");
   }
 
+  const isPremium = await isVendorPremium(user.id);
   const activeCount = await getActiveVendorCount(user.id);
 
-  // Free plan: max 3 active items — redirect to subscription instead of showing the form
-  if (activeCount >= 3) {
+  // Free plan: max 3 active items — if not Premium, redirect to subscription
+  if (!isPremium && activeCount >= 3) {
     redirect("/vendor/subscription");
   }
 
@@ -36,7 +38,7 @@ export default async function AddMenuItemPage() {
       </div>
 
       <div className="rounded-3xl border border-white/10 bg-[#141416] p-6 shadow-xl sm:p-8">
-        <AddMenuItemForm activeCount={activeCount} />
+        <AddMenuItemForm activeCount={activeCount} isPremium={isPremium} />
       </div>
     </div>
   );

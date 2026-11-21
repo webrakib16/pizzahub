@@ -77,11 +77,20 @@ export default function AvatarUploadModal({
       }
 
       setSaving(true);
-      const res = await fetch("/api/user/image", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      let res = await fetch(`${apiUrl}/api/user/image`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ image: finalUrl }),
       });
+      if (!res.ok) {
+        res = await fetch("/api/user/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: finalUrl }),
+        });
+      }
 
       const data = await res.json();
       if (!res.ok) {

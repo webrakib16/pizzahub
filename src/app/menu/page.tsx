@@ -547,7 +547,11 @@ export default function MenuPage() {
     let isMounted = true;
     async function loadMenu() {
       try {
-        const res = await fetch("/api/menu/public");
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        let res = await fetch(`${apiUrl}/api/menu/public`);
+        if (!res.ok) {
+          res = await fetch("/api/menu/public");
+        }
         if (res.ok) {
           const data = (await res.json()) as PublicMenuItemDto[];
           if (isMounted && Array.isArray(data)) {

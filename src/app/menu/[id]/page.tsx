@@ -135,7 +135,11 @@ export default function MenuItemDetailPage({ params }: PageProps) {
     let isMounted = true;
     async function loadItem() {
       try {
-        const res = await fetch(`/api/menu/public/${id}`);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        let res = await fetch(`${apiUrl}/api/menu/public/${id}`);
+        if (!res.ok) {
+          res = await fetch(`/api/menu/public/${id}`);
+        }
         if (res.ok) {
           const data = await res.json();
           if (isMounted) {
@@ -145,9 +149,14 @@ export default function MenuItemDetailPage({ params }: PageProps) {
             try {
               let relatedList: DynamicItem[] = [];
               if (data.category) {
-                const relRes = await fetch(
-                  `/api/menu/public?category=${encodeURIComponent(data.category)}&exclude=${encodeURIComponent(id)}&limit=3`
+                let relRes = await fetch(
+                  `${apiUrl}/api/menu/public?category=${encodeURIComponent(data.category)}&exclude=${encodeURIComponent(id)}&limit=3`
                 );
+                if (!relRes.ok) {
+                  relRes = await fetch(
+                    `/api/menu/public?category=${encodeURIComponent(data.category)}&exclude=${encodeURIComponent(id)}&limit=3`
+                  );
+                }
                 if (relRes.ok) {
                   const relData = await relRes.json();
                   if (Array.isArray(relData)) {
@@ -158,9 +167,14 @@ export default function MenuItemDetailPage({ params }: PageProps) {
 
               // If fewer than 3 items in the same category, fetch other approved items across all vendors to show 3 cards
               if (relatedList.length < 3) {
-                const anyRes = await fetch(
-                  `/api/menu/public?exclude=${encodeURIComponent(id)}&limit=6`
+                let anyRes = await fetch(
+                  `${apiUrl}/api/menu/public?exclude=${encodeURIComponent(id)}&limit=6`
                 );
+                if (!anyRes.ok) {
+                  anyRes = await fetch(
+                    `/api/menu/public?exclude=${encodeURIComponent(id)}&limit=6`
+                  );
+                }
                 if (anyRes.ok) {
                   const anyData = await anyRes.json();
                   if (Array.isArray(anyData)) {

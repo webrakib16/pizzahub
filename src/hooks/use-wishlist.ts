@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore, useMemo, useCallback } from "react";
+import { useSyncExternalStore, useEffect, useCallback } from "react";
 import { useSession } from "@/lib/auth-client";
 
 export interface WishlistItem {
@@ -17,28 +17,66 @@ export interface WishlistItem {
 
 const WISHLIST_EVENT = "pizzahub_wishlist_updated";
 
-// Build a per-user localStorage key so each user's wishlist is isolated.
 function storageKey(userId: string): string {
   return `pizzahub_wishlist_v2_${userId}`;
 }
 
-// ── Stable empty reference — NEVER return a new [] from getSnapshot ───────────
 const EMPTY_ITEMS: WishlistItem[] = [];
 
-// ── Per-user cache to avoid redundant JSON.parse + unstable references ────────
-const cache = new Map<string, { raw: string; items: WishlistItem[] }>();
+// ── Global stable store state ──────────────────────────────────────────────────
+let activeUserId = "";
+let cachedSnapshot: WishlistItem[] = EMPTY_ITEMS;
+const listeners = new Set<() => void>();
+
+function syncFromStorage(userId: string) {
+  if (typeof window === "undefined" || !userId) {
+    activeUserId = "";
+    cachedSnapshot = EMPTY_ITEMS;
+    return;
+  }
+  activeUserId = userId;
+  try {
+    const raw = localStorage.getItem(storageKey(userId));
+    if (!raw) {
+      cachedSnapshot = EMPTY_ITEMS;
+    } else {
+      const parsed = JSON.parse(raw);
+      cachedSnapshot = Array.isArray(parsed) ? parsed : EMPTY_ITEMS;
+    }
+  } catch {
+    cachedSnapshot = EMPTY_ITEMS;
+  }
+}
+
+function notify() {
+  listeners.forEach((listener) => listener());
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener(WISHLIST_EVENT, (e: Event) => {
+    const detailUserId = (e as CustomEvent).detail;
+    if (detailUserId && detailUserId === activeUserId) {
+      syncFromStorage(activeUserId);
+      notify();
+    }
+  });
+
+  window.addEventListener("storage", (e: StorageEvent) => {
+    if (activeUserId && e.key === storageKey(activeUserId)) {
+      syncFromStorage(activeUserId);
+      notify();
+    }
+  });
+}
 
 export function getWishlistItems(userId: string): WishlistItem[] {
-  if (typeof window === "undefined" || !userId) return EMPTY_ITEMS; // stable ref!
+  if (typeof window === "undefined" || !userId) return EMPTY_ITEMS;
+  if (userId === activeUserId) return cachedSnapshot;
   try {
-    const key = storageKey(userId);
-    const raw = localStorage.getItem(key);
-    if (raw === null) return EMPTY_ITEMS; // stable ref!
-    const entry = cache.get(key);
-    if (entry && entry.raw === raw) return entry.items; // cached stable ref
-    const items = JSON.parse(raw) as WishlistItem[];
-    cache.set(key, { raw, items });
-    return items;
+    const raw = localStorage.getItem(storageKey(userId));
+    if (!raw) return EMPTY_ITEMS;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : EMPTY_ITEMS;
   } catch {
     return EMPTY_ITEMS;
   }
@@ -48,9 +86,11 @@ export function saveWishlistItems(userId: string, items: WishlistItem[]) {
   if (typeof window === "undefined" || !userId) return;
   try {
     const key = storageKey(userId);
-    const raw = JSON.stringify(items);
-    cache.set(key, { raw, items });
-    localStorage.setItem(key, raw);
+    localStorage.setItem(key, JSON.stringify(items));
+    if (userId === activeUserId) {
+      cachedSnapshot = items;
+      notify();
+    }
     window.dispatchEvent(new CustomEvent(WISHLIST_EVENT, { detail: userId }));
   } catch {
     // Ignore storage errors
@@ -76,41 +116,33 @@ export function clearWishlist(userId: string) {
   saveWishlistItems(userId, []);
 }
 
-// ── Subscription factory ───────────────────────────────────────────────────────
-function makeSubscribe(userId: string) {
-  return (callback: () => void) => {
-    if (typeof window === "undefined") return () => {};
-
-    const onCustom = (e: Event) => {
-      if ((e as CustomEvent).detail === userId) callback();
-    };
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === storageKey(userId)) callback();
-    };
-
-    window.addEventListener(WISHLIST_EVENT, onCustom);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      window.removeEventListener(WISHLIST_EVENT, onCustom);
-      window.removeEventListener("storage", onStorage);
-    };
+function subscribe(callback: () => void) {
+  listeners.add(callback);
+  return () => {
+    listeners.delete(callback);
   };
 }
 
-// ── Main hook — user-scoped ────────────────────────────────────────────────────
+function getSnapshot(): WishlistItem[] {
+  return cachedSnapshot;
+}
+
+function getServerSnapshot(): WishlistItem[] {
+  return EMPTY_ITEMS;
+}
+
 export function useWishlist() {
   const { data: session } = useSession();
   const userId = session?.user?.id ?? "";
 
-  // useMemo so subscribe and getSnapshot are stable references per userId.
-  // useCallback(makeSubscribe(userId), [userId]) is WRONG — it calls makeSubscribe
-  // eagerly on every render before useCallback can memoize the result.
-  const subscribe = useMemo(() => makeSubscribe(userId), [userId]);
-  const getSnapshot = useMemo(() => () => getWishlistItems(userId), [userId]);
-  const getServerSnapshot = useMemo(() => () => EMPTY_ITEMS, []);
+  useEffect(() => {
+    if (userId !== activeUserId) {
+      syncFromStorage(userId);
+      notify();
+    }
+  }, [userId]);
 
   const items = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-
   const totalCount = items.length;
 
   const isInWishlist = useCallback(

@@ -48,6 +48,10 @@ export async function POST(request: Request) {
   const deliveryDate =
     typeof input.deliveryDate === "string" ? input.deliveryDate.trim() : "";
   const deliveryLocation = input.deliveryLocation as DeliveryLocation;
+  const paymentMethod =
+    typeof input.paymentMethod === "string" && input.paymentMethod.trim()
+      ? input.paymentMethod.trim()
+      : "Cash on Delivery";
 
   if (!fullName) return badRequest("Full name is required.");
   if (fullName.length > 100) return badRequest("Full name is too long.");
@@ -75,7 +79,7 @@ export async function POST(request: Request) {
     return badRequest("Special instructions are too long.");
   }
 
-  const priced = priceOrderItems(input.items);
+  const priced = await priceOrderItems(input.items);
 
   if (!priced.ok) {
     return badRequest(priced.error);
@@ -98,6 +102,7 @@ export async function POST(request: Request) {
     deliveryAddress: address,
     deliveryDate,
     instructions,
+    paymentMethod,
   });
 
   return NextResponse.json({ order }, { status: 201 });

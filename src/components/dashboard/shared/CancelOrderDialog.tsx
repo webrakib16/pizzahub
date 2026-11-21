@@ -38,9 +38,16 @@ export function CancelOrderDialog({
     setIsCancelling(true);
 
     try {
-      const response = await fetch(`/api/orders/${orderId}/cancel`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      let response = await fetch(`${apiUrl}/api/orders/${orderId}/cancel`, {
         method: "POST",
+        credentials: "include",
       });
+      if (!response.ok) {
+        response = await fetch(`/api/orders/${orderId}/cancel`, {
+          method: "POST",
+        });
+      }
       const data = (await response.json().catch(() => ({}))) as {
         error?: string;
       };
