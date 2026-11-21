@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/Footer";
-import { MENU_ITEMS } from "@/data/menu-data";
+import type { MenuItem } from "@/data/menu-data";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
 import { useWishlist } from "@/hooks/use-wishlist";
@@ -41,11 +41,11 @@ import {
 const CATEGORY_TABS = [
   { label: "All Items", slug: "all", type: "all" },
   { label: "Classic Pizzas", slug: "classic", type: "classic" },
-  { label: "Vegetarian", slug: "vegetarian", type: "vegetarian" },
+  { label: "Vegetarian Pizzas", slug: "vegetarian", type: "vegetarian" },
   { label: "Meat Lovers", slug: "meat-lovers", type: "meat" },
+  { label: "Specialty / Gourmet Pizzas", slug: "gourmet", type: "gourmet" },
   { label: "Sides & Appetizers", slug: "sides-appetizers", type: "sides" },
-  { label: "Desserts", slug: "desserts", type: "desserts" },
-  { label: "Beverages", slug: "beverages", type: "beverages" },
+  { label: "Beverages & Desserts", slug: "beverages-desserts", type: "beverages-desserts" },
 ] as const;
 
 function CategoryTabIcon({ type, className = "size-4" }: { type: string; className?: string }) {
@@ -92,22 +92,20 @@ function CategoryTabIcon({ type, className = "size-4" }: { type: string; classNa
           <path d="M7 11V4M10 11V2M14 11V3M17 11V5" />
         </svg>
       );
-    case "desserts":
+    case "gourmet":
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-          <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
-          <path d="M4 16s2-1.5 4 0 4 0 4 0 2-1.5 4 0 4 0 4 0" />
-          <path d="M2 21h20" />
-          <path d="M12 7v4" />
-          <circle cx="12" cy="4" r="1.5" fill="currentColor" />
+          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 3.9 2.4-7.4L2 9.4h7.6L12 2z" />
         </svg>
       );
-    case "beverages":
+    case "beverages-desserts":
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
           <path d="M7 8h10l-1.5 13h-7L7 8z" />
           <path d="M5 8h14" />
           <path d="M15 2l-3 6" />
+          <circle cx="18" cy="6" r="2.5" />
+          <path d="M18 3.5v1M18 8.5v1" />
         </svg>
       );
     default:
@@ -508,6 +506,19 @@ function SkeletonCard() {
 
 // ─── Main Menu Page Component ─────────────────────────────────────────────────
 
+interface PublicMenuItemDto {
+  id: string;
+  name: string;
+  category?: string;
+  price: number;
+  vendorName?: string;
+  location?: string;
+  description?: string;
+  primaryImage?: string;
+  image?: string;
+  createdAt?: string;
+}
+
 export default function MenuPage() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -528,6 +539,75 @@ export default function MenuPage() {
   const ITEMS_PER_PAGE = 12;
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Live Menu Items strictly from DB (approved vendor items only)
+  const [liveMenuItems, setLiveMenuItems] = useState<MenuItem[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadMenu() {
+      try {
+        const res = await fetch("/api/menu/public");
+        if (res.ok) {
+          const data = (await res.json()) as PublicMenuItemDto[];
+          if (isMounted && Array.isArray(data)) {
+            const mapped = data.map((d: PublicMenuItemDto) => {
+              const catLower = (d.category || "").toLowerCase();
+              let slug:
+                | "classic"
+                | "vegetarian"
+                | "meat-lovers"
+                | "gourmet"
+                | "sides-appetizers"
+                | "beverages-desserts" = "classic";
+              if (catLower.includes("veg")) slug = "vegetarian";
+              else if (catLower.includes("meat") || catLower.includes("spicy") || catLower.includes("bbq") || catLower.includes("seafood")) slug = "meat-lovers";
+              else if (catLower.includes("gourmet") || catLower.includes("special")) slug = "gourmet";
+              else if (catLower.includes("side")) slug = "sides-appetizers";
+              else if (catLower.includes("dessert") || catLower.includes("drink") || catLower.includes("beverage"))
+                slug = "beverages-desserts";
+
+              const primary = d.primaryImage || d.image || "";
+
+              return {
+                id: d.id,
+                name: d.name,
+                slug: d.id,
+                category: d.category || "Classic Pizzas",
+                categorySlug: slug,
+                price: Number(d.price) || 450,
+                restaurantName: d.vendorName || "PizzaHub Partner",
+                location: (d.location || "Dhaka") as MenuItem["location"],
+                description: d.description || "",
+                image: primary,
+                rating: 4.8,
+                reviews: 190,
+                badge: "Approved",
+                sizes: ["Regular (8\")", "Medium (10\")", "Large (12\")"] as ("Regular (8\")" | "Medium (10\")" | "Large (12\")")[],
+                crusts: ["Classic Crust", "Thin Crust", "Cheese Burst"] as ("Classic Crust" | "Thin Crust" | "Cheese Burst" | "Stuffed Crust")[],
+                isPopular: true,
+                createdAt: d.createdAt,
+                isActive: true,
+                status: "approved" as const,
+              };
+            });
+
+            setLiveMenuItems(mapped);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading live menu items:", err);
+      } finally {
+        if (isMounted) setInitialLoading(false);
+      }
+    }
+
+    loadMenu();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Interactive UI States
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
@@ -535,35 +615,36 @@ export default function MenuPage() {
   const [hasError, setHasError] = useState(false);
   const { isInWishlist, toggleWishlistItem } = useWishlist();
 
-  // Subtle loading transition on filter change
-  const triggerFilterTransition = () => {
+  // Subtle loading transition on filter change — stable ref so React Compiler
+  // doesn't add it to effect deps and cause an infinite loop.
+  const triggerFilterTransition = useCallback(() => {
     setIsFilteringLoading(true);
     setCurrentPage(1);
     const timer = setTimeout(() => setIsFilteringLoading(false), 140);
     return () => clearTimeout(timer);
-  };
+  }, []);
 
-  const handlePriceChange = (min: number, max: number) => {
+  const handlePriceChange = useCallback((min: number, max: number) => {
     setMinPrice(min);
     setMaxPrice(max);
     triggerFilterTransition();
-  };
+  }, [triggerFilterTransition]);
 
-  const toggleSize = (size: string) => {
+  const toggleSize = useCallback((size: string) => {
     setSelectedSizes((prev) =>
       prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
     );
     triggerFilterTransition();
-  };
+  }, [triggerFilterTransition]);
 
-  const toggleCrust = (crust: string) => {
+  const toggleCrust = useCallback((crust: string) => {
     setSelectedCrusts((prev) =>
       prev.includes(crust) ? prev.filter((c) => c !== crust) : [...prev, crust]
     );
     triggerFilterTransition();
-  };
+  }, [triggerFilterTransition]);
 
-  const toggleWishlist = (item: (typeof MENU_ITEMS)[0], e: React.MouseEvent) => {
+  const toggleWishlist = useCallback((item: MenuItem, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!isLoggedIn) {
@@ -588,15 +669,15 @@ export default function MenuPage() {
       title: added ? "Added to your wishlist!" : "Removed from wishlist",
       type: "success",
     });
-  };
+  }, [isLoggedIn, router, toggleWishlistItem]);
 
-  const handleViewDetails = (id: string, e: React.MouseEvent) => {
+  const handleViewDetails = useCallback((id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     router.push(`/menu/${id}`);
-  };
+  }, [router]);
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setSearchQuery("");
     setActiveCategory("all");
     setSelectedLocation("All Locations");
@@ -607,7 +688,7 @@ export default function MenuPage() {
     setSortBy("popular");
     setCurrentPage(1);
     triggerFilterTransition();
-  };
+  }, [triggerFilterTransition]);
 
   const hasActiveFilters =
     searchQuery.trim() !== "" ||
@@ -628,7 +709,7 @@ export default function MenuPage() {
 
   // ── Combined Filtering Logic ────────────────────────────────────────────────
   const filteredItems = useMemo(() => {
-    return MENU_ITEMS.filter((item) => {
+    return liveMenuItems.filter((item) => {
       // Search by Name (case-insensitive)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -684,6 +765,7 @@ export default function MenuPage() {
       return b.reviews - a.reviews;
     });
   }, [
+    liveMenuItems,
     searchQuery,
     activeCategory,
     selectedLocation,
@@ -1091,7 +1173,7 @@ export default function MenuPage() {
                     Retry
                   </button>
                 </div>
-              ) : isFilteringLoading ? (
+              ) : isFilteringLoading || initialLoading ? (
                 /* ── Loading Skeleton State (Zero layout shift) ── */
                 <div
                   className={

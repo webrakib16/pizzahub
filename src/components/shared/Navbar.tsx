@@ -73,6 +73,7 @@ export default function Navbar() {
   const user = session?.user;
   const isLoggedIn = Boolean(user);
   const navLinks = getNavLinks(user?.role);
+  const wishlistHref = user?.role === "vendor" ? "/vendor/wishlist" : "/wishlist";
   // Floating Wishlist button shows on all pages (including Homepage) whenever user has 1+ items in wishlist
   const shouldShowFloatingWishlist = wishlistCount > 0;
 
@@ -325,6 +326,15 @@ export default function Navbar() {
                       <Settings className="size-4 text-zinc-400" />
                       Profile Settings
                     </Link>
+                    <Link
+                      href={wishlistHref}
+                      role="menuitem"
+                      onClick={closeAll}
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:bg-white/5 hover:text-orange-500"
+                    >
+                      <Heart className="size-4 text-zinc-400" />
+                      Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ""}
+                    </Link>
                   </div>
 
                   {/* Logout */}
@@ -497,7 +507,7 @@ export default function Navbar() {
         <>
           {/* ── MOBILE vertical tab (hidden on sm+) ── */}
           <Link
-            href="/wishlist"
+            href={wishlistHref}
             aria-label="View Wishlist"
             className="fixed right-0 top-1/2 -translate-y-1/2 z-40 flex sm:hidden flex-col items-center gap-1.5 px-2 py-3 rounded-l-xl rounded-r-none border-t-2 border-b-2 border-l border-t-white border-b-orange-500 border-l-white/20 bg-[#141416]/95 backdrop-blur-sm cursor-pointer group hover:bg-[#1a1a1c]/95 transition-all duration-300 active:scale-95 shadow-xl"
           >
@@ -524,7 +534,7 @@ export default function Navbar() {
           <div className="pointer-events-none fixed inset-x-0 bottom-24 sm:bottom-28 z-40 hidden sm:block">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex justify-end">
               <Link
-                href="/wishlist"
+                href={wishlistHref}
                 aria-label="View Wishlist"
                 className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 rounded-full border-t-2 border-b-2 border-x border-t-white border-b-orange-500 border-x-white/20 bg-[#141416]/95 backdrop-blur-md cursor-pointer group hover:bg-[#1a1a1c]/95 hover:border-t-orange-500 hover:border-b-white hover:shadow-[0_4px_25px_rgba(249,115,22,0.3)] hover:scale-105 transition-all duration-300 active:scale-95 shadow-2xl"
               >

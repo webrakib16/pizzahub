@@ -3,7 +3,7 @@ export interface MenuItem {
   name: string;
   slug: string;
   category: string;
-  categorySlug: "classic" | "vegetarian" | "meat-lovers" | "sides-appetizers" | "desserts" | "beverages";
+  categorySlug: "classic" | "vegetarian" | "meat-lovers" | "gourmet" | "sides-appetizers" | "desserts" | "beverages" | "beverages-desserts";
   price: number;
   restaurantName: string;
   location: "Dhaka" | "Chattogram" | "Sylhet" | "Rajshahi";

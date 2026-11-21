@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   AlertCircle,
   ChevronLeft,
@@ -19,16 +18,14 @@ import {
 import { toast } from "@/components/ui/toast";
 
 const CATEGORIES = [
-  "Classic Pizza",
-  "Gourmet Pizza",
-  "Vegetarian",
-  "Spicy",
-  "Cheese",
-  "BBQ",
-  "Seafood",
-  "Dessert Pizza",
-  "Sides",
+  "Classic Pizzas",
+  "Vegetarian Pizzas",
+  "Meat Lovers",
+  "Specialty / Gourmet Pizzas",
+  "Sides & Appetizers",
+  "Beverages & Desserts",
   "Drinks",
+  "Desserts",
 ];
 
 interface ImageItem {
@@ -57,6 +54,7 @@ export default function AddMenuItemForm({
   const [images, setImages] = useState<ImageItem[]>([]);
   const [primaryIndex, setPrimaryIndex] = useState<number>(0);
   const [urlInput, setUrlInput] = useState("");
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -112,18 +110,19 @@ export default function AddMenuItemForm({
   };
 
   const handleAddUrl = () => {
-    const trimmed = urlInput.trim();
-    if (!trimmed) return;
+    const raw = urlInput.trim();
+    if (!raw) return;
 
-    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-      toast.add({
-        title: "Please enter a valid URL starting with http:// or https://",
-        type: "error",
-      });
-      return;
-    }
+    // Split by newlines, commas, or spaces in case user pasted multiple links
+    const tokens = raw
+      .split(/[\r\n,]+/)
+      .map((t) => t.trim().replace(/^["']|["']$/g, ""))
+      .filter((t) => t.length > 0);
 
-    if (images.length >= 5) {
+    if (tokens.length === 0) return;
+
+    const remainingSlots = 5 - images.length;
+    if (remainingSlots <= 0) {
       toast.add({
         title: "Maximum of 5 images allowed. Please remove an image first.",
         type: "error",
@@ -131,27 +130,66 @@ export default function AddMenuItemForm({
       return;
     }
 
-    const newItem: ImageItem = {
-      id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
-      previewUrl: trimmed,
-      source: "url",
-    };
+    const validUrls: string[] = [];
+    for (const token of tokens) {
+      let url = token.trim();
+      // Auto-extract from Google Images redirection URL if present
+      if (url.includes("google.") && url.includes("imgurl=")) {
+        try {
+          const parsed = new URL(url);
+          const actual = parsed.searchParams.get("imgurl");
+          if (actual) url = decodeURIComponent(actual);
+        } catch {}
+      }
 
-    setImages((prev) => [...prev, newItem]);
+      if (url.startsWith("http://") || url.startsWith("https://")) {
+        validUrls.push(url);
+      }
+    }
+
+    if (validUrls.length === 0) {
+      toast.add({
+        title: "Please enter a valid image URL starting with http:// or https://",
+        type: "error",
+      });
+      return;
+    }
+
+    const toAdd = validUrls.slice(0, remainingSlots);
+    if (validUrls.length > remainingSlots) {
+      toast.add({
+        title: `Added ${remainingSlots} image(s). (Max 5 images allowed)`,
+        type: "info",
+      });
+    }
+
+    const newItems: ImageItem[] = toAdd.map((url) => ({
+      id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+      previewUrl: url,
+      source: "url",
+    }));
+
+    setImages((prev) => [...prev, ...newItems]);
     setUrlInput("");
     setErrors((prev) => ({ ...prev, image: "" }));
   };
 
   const handleRemoveImage = (indexToRemove: number) => {
-    setImages((prev) => {
-      const target = prev[indexToRemove];
-      if (target?.file && target.previewUrl.startsWith("blob:")) {
-        try {
-          URL.revokeObjectURL(target.previewUrl);
-        } catch {}
-      }
-      return prev.filter((_, idx) => idx !== indexToRemove);
-    });
+    const target = images[indexToRemove];
+    if (target?.file && target.previewUrl.startsWith("blob:")) {
+      try {
+        URL.revokeObjectURL(target.previewUrl);
+      } catch {}
+    }
+
+    setImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    if (target) {
+      setFailedImages((prev) => {
+        const next = { ...prev };
+        delete next[target.id];
+        return next;
+      });
+    }
 
     setPrimaryIndex((currentPrimary) => {
       if (indexToRemove === currentPrimary) {
@@ -461,7 +499,7 @@ export default function AddMenuItemForm({
                 <Link2 className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-orange-400" />
                 <input
                   type="url"
-                  placeholder="Paste direct image URL (https://...)"
+                  placeholder="Paste image link(s) — paste one or multiple links"
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -483,7 +521,7 @@ export default function AddMenuItemForm({
               </button>
             </div>
             <p className="text-[11px] text-zinc-500">
-              Paste public image links (ImgBB, Google Drive, Cloudinary, etc.)
+              Paste public image links (Unsplash, ImgBB, Pinterest, Cloudinary, etc.)
             </p>
           </div>
         )}
@@ -497,6 +535,8 @@ export default function AddMenuItemForm({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
               {images.map((img, idx) => {
                 const isPrimary = idx === primaryIndex;
+                const isFailed = failedImages[img.id];
+
                 return (
                   <div
                     key={img.id}
@@ -506,19 +546,39 @@ export default function AddMenuItemForm({
                         : "border-white/10 hover:border-white/20"
                     }`}
                   >
-                    {/* Thumbnail */}
+                    {/* Thumbnail Container */}
                     <div className="relative aspect-square w-full overflow-hidden bg-black/40">
-                      <Image
+                      {/* Standard HTML img with no-referrer solves Pinterest, Imgur, Discord 403 Forbidden blocks */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={img.previewUrl}
                         alt={`Item image ${idx + 1}`}
-                        fill
-                        className="object-cover"
-                        unoptimized
+                        referrerPolicy="no-referrer"
+                        className={`h-full w-full object-cover transition-opacity ${
+                          isFailed ? "opacity-20" : "opacity-100"
+                        }`}
+                        onError={() => {
+                          setFailedImages((prev) => ({ ...prev, [img.id]: true }));
+                        }}
+                        onLoad={() => {
+                          setFailedImages((prev) => ({ ...prev, [img.id]: false }));
+                        }}
                       />
+
+                      {/* Broken Link Warning overlay */}
+                      {isFailed && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/85 p-2 text-center text-red-400">
+                          <AlertCircle className="size-5 mb-1 text-red-500" />
+                          <span className="text-[10px] font-bold text-red-400">Broken Link</span>
+                          <span className="text-[9px] text-zinc-500 line-clamp-1 mt-0.5">
+                            Check image URL
+                          </span>
+                        </div>
+                      )}
 
                       {/* Primary Badge */}
                       {isPrimary && (
-                        <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-md bg-orange-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-md">
+                        <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-md bg-orange-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-md z-10">
                           <Star className="size-2.5 fill-white" />
                           Primary
                         </span>
@@ -529,7 +589,7 @@ export default function AddMenuItemForm({
                         type="button"
                         onClick={() => handleRemoveImage(idx)}
                         title="Remove image"
-                        className="absolute top-1.5 right-1.5 rounded-md bg-black/70 p-1 text-zinc-400 backdrop-blur-sm transition-colors hover:bg-red-600 hover:text-white cursor-pointer"
+                        className="absolute top-1.5 right-1.5 rounded-md bg-black/70 p-1 text-zinc-400 backdrop-blur-sm transition-colors hover:bg-red-600 hover:text-white cursor-pointer z-10"
                       >
                         <Trash2 className="size-3.5" />
                       </button>

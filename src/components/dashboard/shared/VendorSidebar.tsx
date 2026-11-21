@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Heart,
   LayoutDashboard,
   LogOut,
   PlusCircle,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { signOut, useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
+import { useWishlist } from "@/hooks/use-wishlist";
 import {
   Sidebar,
   SidebarContent,
@@ -43,6 +45,7 @@ const VENDOR_NAV: VendorNavItem[] = [
   { label: "My Menu Items", href: "/vendor/menu", icon: UtensilsCrossed },
   { label: "Add Menu Item", href: "/vendor/menu/add", icon: PlusCircle },
   { label: "Customer Orders", href: "/vendor/orders", icon: ShoppingBag },
+  { label: "Wishlist", href: "/vendor/wishlist", icon: Heart },
   { label: "Subscription", href: "/vendor/subscription", icon: Sparkles },
   { label: "Profile Settings", href: "/vendor/profile", icon: Store },
 ];
@@ -70,6 +73,7 @@ export default function VendorSidebar() {
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
   const { data: session } = useSession();
+  const { totalCount: wishlistCount } = useWishlist();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const user = session?.user;
@@ -160,7 +164,12 @@ export default function VendorSidebar() {
                     className={menuButtonClasses}
                   >
                     <item.icon className="size-4 shrink-0" />
-                    <span>{item.label}</span>
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {item.href === "/vendor/wishlist" && wishlistCount > 0 && (
+                      <span className="ml-auto flex min-w-[18px] h-[18px] px-1 items-center justify-center rounded-full bg-orange-500 text-[10px] font-black text-white">
+                        {wishlistCount > 99 ? "99+" : wishlistCount}
+                      </span>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

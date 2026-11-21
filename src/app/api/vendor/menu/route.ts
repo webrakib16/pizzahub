@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getVendorMenuItems, createMenuItem } from "@/lib/menu-items";
+import { getVendorShop, isShopProfileComplete } from "@/lib/vendor-shops";
 
 // GET /api/vendor/menu — list vendor's own items
 export async function GET() {
@@ -24,6 +25,18 @@ export async function POST(req: NextRequest) {
   if (!user || (user.role !== "vendor" && user.role !== "admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // 1. Shop profile gate: vendor must complete their shop profile first
+  const hasShopProfile = await isShopProfileComplete(user.id);
+  if (!hasShopProfile) {
+    return NextResponse.json(
+      { error: "Complete your shop profile before adding menu items" },
+      { status: 400 }
+    );
+  }
+
+  const shop = await getVendorShop(user.id);
+  const vendorShopName = shop?.shopName || user.name || "Pizza Hub Partner";
 
   let body: unknown;
   try {
@@ -64,7 +77,7 @@ export async function POST(req: NextRequest) {
 
   const result = await createMenuItem(
     user.id,
-    user.name ?? "Unknown Vendor",
+    vendorShopName,
     {
       name: String(name),
       category: String(category),

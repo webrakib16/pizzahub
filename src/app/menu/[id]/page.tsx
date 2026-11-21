@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, use } from "react";
+import { useState, useEffect, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -26,11 +26,10 @@ import {
   ThumbsUp,
   MessageSquare,
   Award,
+  Loader2,
 } from "lucide-react";
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/Footer";
-import { MENU_ITEMS } from "@/data/menu-data";
-import { FEATURED_MENU_ITEMS } from "@/data/featured-menu";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
 import { addToCart } from "@/hooks/use-cart";
@@ -100,13 +99,103 @@ export default function MenuItemDetailPage({ params }: PageProps) {
   const { data: session } = useSession();
   const isLoggedIn = Boolean(session?.user);
 
-  // ── Find Current Product ──────────────────────────────────────────────────
-  const menuItem = MENU_ITEMS.find((m) => m.id === id || m.slug === id);
-  const featuredItem = !menuItem
-    ? FEATURED_MENU_ITEMS.find((m) => m.id === id || m.slug === id)
-    : null;
+  // ── Find Current Product (exclusively from real DB via API) ─────────────
+  interface DynamicItem {
+    id: string;
+    vendorId?: string;
+    vendorName?: string;
+    shopBio?: string;
+    shopLogo?: string;
+    shopLocation?: string;
+    vendorPremium?: boolean;
+    name: string;
+    category: string;
+    categorySlug?: string;
+    price: number;
+    location: string;
+    description: string;
+    image: string;
+    primaryImage?: string;
+    images?: string[];
+    rating?: number;
+    reviews?: number;
+    badge?: string;
+    isActive?: boolean;
+    status?: string;
+    sizes?: string[];
+    crusts?: string[];
+    restaurantName?: string;
+  }
 
-  const currentProduct = menuItem || (featuredItem as (typeof MENU_ITEMS)[0] | undefined);
+  const [dbProduct, setDbProduct] = useState<DynamicItem | null>(null);
+  const [dbRelated, setDbRelated] = useState<DynamicItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadItem() {
+      try {
+        const res = await fetch(`/api/menu/public/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            setDbProduct(data);
+
+            // Fetch related items (can be from any vendor/category, up to 3 items)
+            try {
+              let relatedList: DynamicItem[] = [];
+              if (data.category) {
+                const relRes = await fetch(
+                  `/api/menu/public?category=${encodeURIComponent(data.category)}&exclude=${encodeURIComponent(id)}&limit=3`
+                );
+                if (relRes.ok) {
+                  const relData = await relRes.json();
+                  if (Array.isArray(relData)) {
+                    relatedList = relData;
+                  }
+                }
+              }
+
+              // If fewer than 3 items in the same category, fetch other approved items across all vendors to show 3 cards
+              if (relatedList.length < 3) {
+                const anyRes = await fetch(
+                  `/api/menu/public?exclude=${encodeURIComponent(id)}&limit=6`
+                );
+                if (anyRes.ok) {
+                  const anyData = await anyRes.json();
+                  if (Array.isArray(anyData)) {
+                    for (const otherItem of anyData) {
+                      if (relatedList.length >= 3) break;
+                      if (!relatedList.some((r) => r.id === otherItem.id)) {
+                        relatedList.push(otherItem);
+                      }
+                    }
+                  }
+                }
+              }
+
+              if (isMounted) {
+                setDbRelated(relatedList);
+              }
+            } catch (relErr) {
+              console.error("Error loading related items:", relErr);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error loading pizza details:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadItem();
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  const currentProduct = dbProduct;
 
   const { isInWishlist, toggleWishlistItem } = useWishlist();
   const isWishlisted = currentProduct ? isInWishlist(currentProduct.id) : false;
@@ -118,12 +207,24 @@ export default function MenuItemDetailPage({ params }: PageProps) {
   const [quantity, setQuantity] = useState(1);
   const [isAddedToCart, setIsAddedToCart] = useState(false);
 
-  // ── Related Products (3 distinct pizza cards) ─────────────────────────────
-  const relatedPizzas = useMemo(() => {
-    if (!currentProduct) return [];
-    const others = MENU_ITEMS.filter((p) => p.id !== currentProduct.id && p.slug !== currentProduct.id);
-    return others.slice(0, 3);
-  }, [currentProduct]);
+  // ── Related Products (Real approved vendor items from same category) ──────
+  const relatedPizzas = dbRelated;
+
+  // Loading state while checking DB
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#09090b] text-white flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center py-20 px-4">
+          <div className="flex flex-col items-center justify-center gap-3">
+            <Loader2 className="size-8 animate-spin text-orange-500" />
+            <p className="text-zinc-400 text-sm">Loading pizza details…</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   // ── Invalid Item ID Handling: Show Appropriate Error Screen ──────────────
   if (!currentProduct) {
@@ -164,19 +265,31 @@ export default function MenuItemDetailPage({ params }: PageProps) {
   }
 
   // ── Item Details & Availability ───────────────────────────────────────────
+  const prodVendorName =
+    ("vendorName" in currentProduct && currentProduct.vendorName)
+      ? currentProduct.vendorName
+      : ("restaurantName" in currentProduct && currentProduct.restaurantName)
+        ? currentProduct.restaurantName
+        : "PizzaHub Partner";
+
+  const prodImage =
+    ("primaryImage" in currentProduct && currentProduct.primaryImage)
+      ? currentProduct.primaryImage
+      : currentProduct.image;
+
   const item = {
     id: currentProduct.id,
     name: currentProduct.name,
     category: currentProduct.category,
     categorySlug: currentProduct.categorySlug,
     price: currentProduct.price,
-    restaurantName: currentProduct.restaurantName,
+    restaurantName: prodVendorName,
     location: currentProduct.location,
     description:
       currentProduct.description ||
       (currentProduct as unknown as { vendorInfo?: string }).vendorInfo ||
       "Authentic freshly baked pizza crafted with premium mozzarella and fresh ingredients.",
-    image: currentProduct.image,
+    image: prodImage,
     rating: currentProduct.rating ?? 4.8,
     reviews: currentProduct.reviews ?? 250,
     badge: currentProduct.badge || "Bestseller",
@@ -184,29 +297,29 @@ export default function MenuItemDetailPage({ params }: PageProps) {
     status: currentProduct.status || "approved",
   };
 
+  const vendorShopName = dbProduct?.vendorName || prodVendorName || "PizzaHub Restaurant";
+  const vendorShopBio = dbProduct?.shopBio || "Premium pizzas, fast delivery, and high hygiene ratings.";
+  const vendorShopLogo = dbProduct?.shopLogo || "";
+  const vendorShopLocation = dbProduct?.shopLocation || item.location;
+  const isVendorPremium = Boolean(dbProduct?.vendorPremium);
+
   // Only approved and active items can be ordered
   const canOrder = item.isActive && item.status === "approved";
 
   // Role Checks
   const userRole = session?.user?.role;
-  const userName = session?.user?.name || "";
-  const userEmail = session?.user?.email || "";
-  const isOwnerVendor =
-    userRole === "vendor" &&
-    (userName.toLowerCase() === item.restaurantName.toLowerCase() ||
-      userEmail.toLowerCase().includes(item.restaurantName.toLowerCase().replace(/\s+/g, "")));
 
   // ── Gallery Images (Supports uploaded images array or fallback photography) ─
   const productImages = (currentProduct as unknown as { images?: string[] })?.images;
   const galleryImages = Array.isArray(productImages) && productImages.length > 0
     ? productImages
     : [
-        item.image,
-        "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1000&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1000&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1604382355076-af4b0eb60143?w=1000&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=1000&auto=format&fit=crop&q=80",
-      ];
+      item.image,
+      "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1000&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1000&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1604382355076-af4b0eb60143?w=1000&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=1000&auto=format&fit=crop&q=80",
+    ];
 
   // ── Dynamic Pricing Calculation (Unit price + Total price) ─────────────────
   const sizeOffset = SIZE_OPTIONS.find((s) => s.value === selectedSize)?.priceOffset || 0;
@@ -291,7 +404,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
   const validateOrderAction = (): boolean => {
     if (!isLoggedIn) {
       toast.add({
-        title: "Customers must be logged in to order",
+        title: "Please sign in to place an order",
         type: "info",
       });
       router.push("/sign-in");
@@ -301,14 +414,6 @@ export default function MenuItemDetailPage({ params }: PageProps) {
     if (userRole === "admin") {
       toast.add({
         title: "Admins cannot place customer orders",
-        type: "error",
-      });
-      return false;
-    }
-
-    if (userRole === "vendor" && isOwnerVendor) {
-      toast.add({
-        title: "Vendors cannot order their own items",
         type: "error",
       });
       return false;
@@ -427,7 +532,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                 LEFT SIDE: Image Gallery & About Vendor Card
                ═══════════════════════════════════════════════════════════════ */}
             <div className="lg:col-span-6 space-y-5">
-              
+
               {/* 1. Large Main Pizza Image Container */}
               <div className="relative aspect-[4/3] sm:aspect-[16/11] w-full rounded-3xl overflow-hidden bg-[#121215] border border-white/10 shadow-2xl group">
                 <AnimatePresence mode="wait">
@@ -444,6 +549,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                       alt={`${item.name} view ${selectedImageIndex + 1}`}
                       fill
                       priority
+                      unoptimized
                       sizes="(max-width: 1024px) 100vw, 50vw"
                       className="object-cover object-center group-hover:scale-105 transition-transform duration-700"
                     />
@@ -461,9 +567,8 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                   className="absolute top-4 right-4 flex size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/70 hover:scale-105 transition-all shadow-md z-10 cursor-pointer"
                 >
                   <Heart
-                    className={`size-5 transition-colors ${
-                      isWishlisted ? "fill-orange-500 text-orange-500" : "text-white"
-                    }`}
+                    className={`size-5 transition-colors ${isWishlisted ? "fill-orange-500 text-orange-500" : "text-white"
+                      }`}
                   />
                 </button>
 
@@ -503,16 +608,16 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                       type="button"
                       onClick={() => setSelectedImageIndex(idx)}
                       aria-label={`Select image ${idx + 1}`}
-                      className={`relative aspect-[4/3] w-full rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer ${
-                        isActive
-                          ? "border-2 border-orange-500 ring-2 ring-orange-500/40 shadow-lg shadow-orange-950/50 scale-[1.02]"
-                          : "border border-white/10 opacity-70 hover:opacity-100 hover:border-white/30"
-                      }`}
+                      className={`relative aspect-[4/3] w-full rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer ${isActive
+                        ? "border-2 border-orange-500 ring-2 ring-orange-500/40 shadow-lg shadow-orange-950/50 scale-[1.02]"
+                        : "border border-white/10 opacity-70 hover:opacity-100 hover:border-white/30"
+                        }`}
                     >
                       <Image
                         src={imgUrl}
                         alt={`Thumbnail ${idx + 1}`}
                         fill
+                        unoptimized
                         sizes="120px"
                         className="object-cover"
                       />
@@ -524,15 +629,27 @@ export default function MenuItemDetailPage({ params }: PageProps) {
               {/* 3. About Vendor Card */}
               <div className="rounded-2xl border border-white/10 bg-[#121215] p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
                 {/* Vendor Square Logo Badge */}
-                <div className="flex size-16 sm:size-20 shrink-0 flex-col items-center justify-center rounded-2xl bg-zinc-950 border border-orange-500/40 text-orange-500 p-2 text-center shadow-inner">
-                  <span className="text-2xl leading-none">🍕</span>
-                  <span className="text-[9px] font-black uppercase tracking-tighter text-white mt-1 leading-tight">
-                    PizzaHub
-                  </span>
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-orange-400">
-                    Outlet
-                  </span>
-                </div>
+                {vendorShopLogo ? (
+                  <div className="relative size-16 sm:size-20 shrink-0 rounded-2xl overflow-hidden border border-orange-500/40 shadow-inner">
+                    <Image
+                      src={vendorShopLogo}
+                      alt={vendorShopName}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex size-16 sm:size-20 shrink-0 flex-col items-center justify-center rounded-2xl bg-zinc-950 border border-orange-500/40 text-orange-500 p-2 text-center shadow-inner">
+                    <span className="text-2xl leading-none">🍕</span>
+                    <span className="text-[9px] font-black uppercase tracking-tighter text-white mt-1 leading-tight">
+                      PizzaHub
+                    </span>
+                    <span className="text-[8px] font-bold uppercase tracking-wider text-orange-400">
+                      Outlet
+                    </span>
+                  </div>
+                )}
 
                 {/* Vendor Details */}
                 <div className="flex-1 min-w-0 space-y-1.5">
@@ -542,16 +659,21 @@ export default function MenuItemDetailPage({ params }: PageProps) {
 
                   <div className="flex items-center gap-2">
                     <h4 className="text-base sm:text-lg font-black text-white truncate">
-                      {item.restaurantName}
+                      {vendorShopName}
                     </h4>
                     {/* Orange verified checkmark badge */}
                     <span className="flex size-4 items-center justify-center rounded-full bg-orange-500 text-white shrink-0">
                       <Check className="size-2.5 stroke-[3]" />
                     </span>
+                    {isVendorPremium && (
+                      <span className="rounded-full bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 text-[10px] font-bold text-orange-400">
+                        Premium
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-xs text-zinc-400">
-                    Premium pizzas, fast delivery, and high hygiene ratings.
+                    {vendorShopBio}
                   </p>
 
                   {/* Rating, Delivery & Verified Meta Row */}
@@ -560,6 +682,13 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                       <Star className="size-3.5 fill-orange-400 text-orange-400" />
                       <span>4.9</span>
                       <span className="text-zinc-500 font-normal">(2,340 reviews)</span>
+                    </div>
+
+                    <span className="text-zinc-700 hidden sm:inline">•</span>
+
+                    <div className="flex items-center gap-1 text-zinc-300">
+                      <MapPin className="size-3.5 text-orange-400" />
+                      <span>{vendorShopLocation}</span>
                     </div>
 
                     <span className="text-zinc-700 hidden sm:inline">•</span>
@@ -637,11 +766,6 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                   <span className="text-3xl sm:text-4xl font-black text-orange-500 font-mono tracking-tight">
                     ৳ {totalPrice}
                   </span>
-                  {quantity > 1 && (
-                    <span className="text-xs text-zinc-400 font-medium">
-                      (৳ {unitPrice} each)
-                    </span>
-                  )}
                 </div>
 
                 {/* Quantity Selector: Minus, Value, Plus */}
@@ -676,11 +800,10 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                   type="button"
                   onClick={handleAddToCart}
                   disabled={!canOrder}
-                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-bold transition-all shadow-lg shadow-orange-950/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                    isAddedToCart
-                      ? "bg-emerald-600 text-white scale-95"
-                      : "bg-gradient-to-r from-red-600 to-orange-500 text-white hover:opacity-95 active:scale-95"
-                  }`}
+                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-bold transition-all shadow-lg shadow-orange-950/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${isAddedToCart
+                    ? "bg-emerald-600 text-white scale-95"
+                    : "bg-gradient-to-r from-red-600 to-orange-500 text-white hover:opacity-95 active:scale-95"
+                    }`}
                 >
                   <ShoppingCart className="size-4" />
                   <span>{isAddedToCart ? "Added!" : "Add to Cart"}</span>
@@ -725,11 +848,10 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                           key={opt.value}
                           type="button"
                           onClick={() => setSelectedSize(opt.value)}
-                          className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                            isSelected
-                              ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-md shadow-orange-950/50 scale-[1.02]"
-                              : "bg-[#141416] border border-white/10 text-zinc-300 hover:border-orange-500/40 hover:text-white"
-                          }`}
+                          className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${isSelected
+                            ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-md shadow-orange-950/50 scale-[1.02]"
+                            : "bg-[#141416] border border-white/10 text-zinc-300 hover:border-orange-500/40 hover:text-white"
+                            }`}
                         >
                           {opt.label}
                         </button>
@@ -751,11 +873,10 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                           key={opt.value}
                           type="button"
                           onClick={() => setSelectedCrust(opt.value)}
-                          className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                            isSelected
-                              ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-md shadow-orange-950/50 scale-[1.02]"
-                              : "bg-[#141416] border border-white/10 text-zinc-300 hover:border-orange-500/40 hover:text-white"
-                          }`}
+                          className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${isSelected
+                            ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-md shadow-orange-950/50 scale-[1.02]"
+                            : "bg-[#141416] border border-white/10 text-zinc-300 hover:border-orange-500/40 hover:text-white"
+                            }`}
                         >
                           {opt.label}
                         </button>
@@ -794,19 +915,13 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                 </div>
 
                 {/* View Vendor Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    toast.add({
-                      title: `Viewing vendor profile: ${item.restaurantName}`,
-                      type: "info",
-                    });
-                  }}
+                <Link
+                  href={`/menu?search=${encodeURIComponent(item.restaurantName || "")}`}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-white/15 bg-zinc-900 text-xs font-semibold text-zinc-200 hover:text-white hover:border-orange-500/50 transition-colors shrink-0 cursor-pointer"
                 >
                   <span>View Vendor</span>
                   <span>→</span>
-                </button>
+                </Link>
               </div>
 
               {/* 5. Related Products: "You Might Also Like" */}
@@ -825,59 +940,80 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                 </div>
 
                 {/* 3 Related Pizza Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                  {relatedPizzas.map((prod) => {
-                    const isRelFav = isInWishlist(prod.id);
-                    return (
-                      <Link
-                        key={prod.id}
-                        href={`/menu/${prod.id}`}
-                        className="group flex flex-col justify-between rounded-2xl bg-[#141416] p-3 border border-white/10 hover:border-orange-500/50 hover:shadow-[0_4px_20px_rgba(249,115,22,0.18)] hover:-translate-y-1 transition-all duration-300"
-                      >
-                        <div>
-                          {/* Image with Wishlist Button */}
-                          <div className="relative aspect-[4/3] w-full rounded-xl overflow-hidden bg-zinc-900 mb-2.5">
-                            <Image
-                              src={prod.image}
-                              alt={prod.name}
-                              fill
-                              sizes="(max-width: 640px) 100vw, 33vw"
-                              className="object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
+                {relatedPizzas.length === 0 ? (
+                  <div className="rounded-2xl border border-white/5 bg-[#141416] p-6 text-center">
+                    <p className="text-zinc-400 text-xs">
+                      More chef recommendations coming soon!
+                    </p>
+                    <Link
+                      href="/menu"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-400 hover:text-orange-300 mt-2"
+                    >
+                      <span>Explore all pizzas</span>
+                      <span>→</span>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    {relatedPizzas.slice(0, 3).map((prod) => {
+                      const displayImg = prod.primaryImage || prod.image || "";
+                      const isRelFav = isInWishlist(prod.id);
+                      return (
+                        <Link
+                          key={prod.id}
+                          href={`/menu/${prod.id}`}
+                          className="group flex flex-col justify-between rounded-2xl bg-[#141416] p-3 border border-white/10 hover:border-orange-500/50 hover:shadow-[0_4px_20px_rgba(249,115,22,0.18)] hover:-translate-y-1 transition-all duration-300"
+                        >
+                          <div>
+                            {/* Image with Wishlist Button */}
+                            <div className="relative aspect-[4/3] w-full rounded-xl overflow-hidden bg-zinc-900 mb-2.5">
+                              {displayImg ? (
+                                <Image
+                                  src={displayImg}
+                                  alt={prod.name}
+                                  fill
+                                  unoptimized
+                                  sizes="(max-width: 640px) 100vw, 33vw"
+                                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                              ) : (
+                                <div className="size-full flex items-center justify-center text-3xl">🍕</div>
+                              )}
 
-                            <button
-                              type="button"
-                              onClick={(e) => handleRelatedWishlistToggle(prod, e)}
-                              aria-label="Wishlist"
-                              className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/60 transition-colors cursor-pointer"
-                            >
-                              <Heart
-                                className={`size-3.5 ${
-                                  isRelFav ? "fill-orange-500 text-orange-500" : "text-white"
-                                }`}
-                              />
-                            </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleRelatedWishlistToggle({ ...prod, image: displayImg }, e)}
+                                aria-label="Wishlist"
+                                className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/60 transition-colors cursor-pointer"
+                              >
+                                <Heart
+                                  className={`size-3.5 ${
+                                    isRelFav ? "fill-orange-500 text-orange-500" : "text-white"
+                                  }`}
+                                />
+                              </button>
+                            </div>
+
+                            {/* Product Name */}
+                            <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-orange-400 transition-colors line-clamp-1">
+                              {prod.name}
+                            </h4>
                           </div>
 
-                          {/* Product Name */}
-                          <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-orange-400 transition-colors line-clamp-1">
-                            {prod.name}
-                          </h4>
-                        </div>
-
-                        {/* Price */}
-                        <div className="mt-2 pt-1.5 flex items-center justify-between">
-                          <span className="text-sm font-black text-orange-500 font-mono">
-                            ৳ {prod.price}
-                          </span>
-                          <span className="text-[10px] text-zinc-500 font-semibold group-hover:text-orange-400 transition-colors">
-                            Details →
-                          </span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
+                          {/* Price */}
+                          <div className="mt-2 pt-1.5 flex items-center justify-between">
+                            <span className="text-sm font-black text-orange-500 font-mono">
+                              ৳ {prod.price}
+                            </span>
+                            <span className="text-[10px] text-zinc-500 font-semibold group-hover:text-orange-400 transition-colors">
+                              Details →
+                            </span>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
             </div>
@@ -982,11 +1118,10 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star
                           key={i}
-                          className={`size-3.5 ${
-                            i < rev.rating
-                              ? "fill-orange-400 text-orange-400"
-                              : "text-zinc-600"
-                          }`}
+                          className={`size-3.5 ${i < rev.rating
+                            ? "fill-orange-400 text-orange-400"
+                            : "text-zinc-600"
+                            }`}
                         />
                       ))}
                     </div>

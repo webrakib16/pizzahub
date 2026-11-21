@@ -1,10 +1,24 @@
+import { redirect } from "next/navigation";
 import { requireVendor } from "@/lib/session";
 import { getActiveVendorCount } from "@/lib/menu-items";
+import { isShopProfileComplete } from "@/lib/vendor-shops";
 import AddMenuItemForm from "./AddMenuItemForm";
 
 export default async function AddMenuItemPage() {
   const user = await requireVendor();
+
+  // Shop Profile Gate: Vendor must complete their shop profile before adding menu items
+  const hasShopProfile = await isShopProfileComplete(user.id);
+  if (!hasShopProfile) {
+    redirect("/vendor/profile?complete_shop=true");
+  }
+
   const activeCount = await getActiveVendorCount(user.id);
+
+  // Free plan: max 3 active items — redirect to subscription instead of showing the form
+  if (activeCount >= 3) {
+    redirect("/vendor/subscription");
+  }
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6">
