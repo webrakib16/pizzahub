@@ -136,7 +136,7 @@ const SORT_OPTIONS = [
   { label: "Top Rated", value: "top-rated" },
 ] as const;
 
-// ─── Dual-Thumb Range Slider Component ──────────────────────
+// ─── Dual-Thumb Range Slider Component ──────────
 
 interface DualRangeSliderProps {
   min: number;
