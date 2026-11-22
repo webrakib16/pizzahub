@@ -65,9 +65,9 @@ export async function priceOrderItems(rawItems: unknown): Promise<PriceResult> {
       return { ok: false, error: "One of the cart items is invalid." };
     }
 
-    let menuItem = MENU_ITEMS.find((item) => item.id === raw.menuItemId);
-    let allowedSizes: string[] = menuItem?.sizes ? [...menuItem.sizes] : DEFAULT_SIZES;
-    let allowedCrusts: string[] = menuItem?.crusts ? [...menuItem.crusts] : DEFAULT_CRUSTS;
+    const menuItem = MENU_ITEMS.find((item) => item.id === raw.menuItemId);
+    const allowedSizes: string[] = menuItem?.sizes ? [...menuItem.sizes] : DEFAULT_SIZES;
+    const allowedCrusts: string[] = menuItem?.crusts ? [...menuItem.crusts] : DEFAULT_CRUSTS;
     let resolvedItem = menuItem
       ? {
           id: menuItem.id,

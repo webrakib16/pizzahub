@@ -19,6 +19,18 @@ if (process.env.NODE_ENV !== "production") {
 const db = client.db("pizzahub");
 
 export const auth = betterAuth({
+  baseURL:
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://pizzahub-azure.vercel.app",
+  trustedOrigins: [
+    "http://localhost:3000",
+    "https://pizzahub-azure.vercel.app",
+    ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
+    ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
+    ...(process.env.NEXT_PUBLIC_BETTER_AUTH_URL ? [process.env.NEXT_PUBLIC_BETTER_AUTH_URL] : []),
+  ],
+  secret: process.env.BETTER_AUTH_SECRET,
   database: mongodbAdapter(db, {
     client,
   }),

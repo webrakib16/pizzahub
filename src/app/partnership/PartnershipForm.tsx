@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, Send, Store, ArrowRight, LogIn } from "lucide-react";
@@ -40,22 +40,14 @@ export default function PartnershipForm() {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Auto-fill user name and email when logged in
-  useEffect(() => {
-    if (user) {
-      setForm((prev) => ({
-        ...prev,
-        ownerName: prev.ownerName || user.name || "",
-        email: prev.email || user.email || "",
-      }));
-    }
-  }, [user]);
-
   const validate = () => {
+    const owner = form.ownerName.trim() || user?.name?.trim() || "";
+    const email = form.email.trim() || user?.email?.trim() || "";
+
     const errs: Record<string, string> = {};
     if (!form.restaurantName.trim()) errs.restaurantName = "Restaurant name is required.";
-    if (!form.ownerName.trim()) errs.ownerName = "Contact person name is required.";
-    if (!form.email.trim() || !form.email.includes("@")) errs.email = "Valid email is required.";
+    if (!owner) errs.ownerName = "Contact person name is required.";
+    if (!email || !email.includes("@")) errs.email = "Valid email is required.";
     if (!form.phone.trim() || form.phone.length < 8) errs.phone = "Valid phone number is required.";
     return errs;
   };
@@ -80,10 +72,16 @@ export default function PartnershipForm() {
 
     setLoading(true);
     try {
+      const payload = {
+        ...form,
+        ownerName: form.ownerName.trim() || user?.name || "",
+        email: form.email.trim() || user?.email || "",
+      };
+
       const res = await fetch("/api/vendor/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -210,7 +208,7 @@ export default function PartnershipForm() {
           <input
             type="text"
             placeholder="e.g. Chef Marco Rossi"
-            value={form.ownerName}
+            value={form.ownerName || (user?.name ?? "")}
             onChange={(e) => {
               setForm((p) => ({ ...p, ownerName: e.target.value }));
               setErrors((p) => ({ ...p, ownerName: "" }));
@@ -230,7 +228,7 @@ export default function PartnershipForm() {
           <input
             type="email"
             placeholder="partner@restaurant.com"
-            value={form.email}
+            value={form.email || (user?.email ?? "")}
             onChange={(e) => {
               setForm((p) => ({ ...p, email: e.target.value }));
               setErrors((p) => ({ ...p, email: "" }));

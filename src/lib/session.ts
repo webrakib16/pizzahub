@@ -9,7 +9,12 @@ import {
 } from "@/lib/proxy";
 
 export const getSession = cache(async () => {
-  return auth.api.getSession({ headers: await headers() });
+  try {
+    return await auth.api.getSession({ headers: await headers() });
+  } catch (err) {
+    console.error("[Session] Error fetching session:", err);
+    return null;
+  }
 });
 
 /**
