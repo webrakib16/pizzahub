@@ -23,20 +23,31 @@ export default function UpgradeToPremiumButton({
     try {
       setIsLoading(true);
 
-      // Call the Next.js internal checkout session route — no CORS issues, session handled server-side
-      const res = await fetch("/api/checkout_sessions", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+      // 1. Primary: Request Stripe Checkout Session from Express Backend
+      let res = await fetch(`${apiUrl}/api/vendor/subscription/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // Transmit Better Auth cookies across origins
       });
+
+      // 2. Fallback: If Express server is unavailable or unauthorized, use Next.js internal checkout route
+      if (!res.ok) {
+        res = await fetch("/api/checkout_sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+      }
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to start checkout session.");
+        throw new Error(data.message || data.error || "Failed to start checkout session.");
       }
 
       if (data.url) {
-        // Redirect to Stripe-hosted Checkout page
+        // Redirect vendor to Stripe Hosted Checkout page
         window.location.href = data.url;
       } else {
         throw new Error("No checkout URL returned from payment server.");

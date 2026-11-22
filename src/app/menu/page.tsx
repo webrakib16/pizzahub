@@ -43,7 +43,7 @@ const CATEGORY_TABS = [
   { label: "Classic Pizzas", slug: "classic", type: "classic" },
   { label: "Vegetarian Pizzas", slug: "vegetarian", type: "vegetarian" },
   { label: "Meat Lovers", slug: "meat-lovers", type: "meat" },
-  { label: "Specialty / Gourmet Pizzas", slug: "gourmet", type: "gourmet" },
+  { label: "Gourmet Pizzas", slug: "gourmet", type: "gourmet" },
   { label: "Sides & Appetizers", slug: "sides-appetizers", type: "sides" },
   { label: "Beverages & Desserts", slug: "beverages-desserts", type: "beverages-desserts" },
 ] as const;
@@ -884,7 +884,7 @@ export default function MenuPage() {
         {/* ── 3. Category Navigation Bar ── */}
         <section className="sticky top-16 sm:top-[72px] z-30 bg-[#09090b]/95 backdrop-blur-md border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-2.5 overflow-x-auto py-3.5 no-scrollbar scrollbar-none">
+            <div className="flex items-center gap-2 lg:gap-2.5 overflow-x-auto py-3 sm:py-3.5 no-scrollbar scrollbar-none">
               {CATEGORY_TABS.map((tab) => {
                 const isActive = activeCategory === tab.slug;
                 return (
@@ -894,7 +894,7 @@ export default function MenuPage() {
                       setActiveCategory(tab.slug);
                       triggerFilterTransition();
                     }}
-                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 lg:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
                       isActive
                         ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-lg shadow-orange-950/40 border-t border-x border-t-white/80 border-x-white/40 border-b-2 border-b-orange-400 scale-[1.02]"
                         : "bg-[#141416] border-t border-x border-t-white/80 border-x-white/40 border-b-2 border-b-orange-500 text-zinc-300 hover:text-white hover:border-t-orange-500 hover:border-x-orange-500 hover:border-b-white"

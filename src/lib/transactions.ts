@@ -5,19 +5,25 @@ export interface Transaction {
   id: string;
   vendorId: string;
   vendorName: string;
+  vendorEmail: string;
   plan: string;
   amount: number;
   status: "success" | "failed" | "pending";
+  stripeSessionId: string;
+  receiptId: string;
   createdAt: string;
 }
 
 interface TransactionDocument {
   _id: ObjectId;
   vendorId: string;
-  vendorName: string;
-  plan: string;
+  vendorName?: string;
+  vendorEmail?: string;
+  plan?: string;
   amount: number;
-  status: "success" | "failed" | "pending";
+  status?: "success" | "failed" | "pending";
+  stripeSessionId?: string;
+  receiptId?: string;
   createdAt: Date | string;
 }
 
@@ -32,13 +38,19 @@ function serialize(doc: TransactionDocument): Transaction {
     return new Date().toISOString();
   };
 
+  const hex = doc._id.toString();
+  const receipt = doc.receiptId || `#PZ-${hex.slice(-6).toUpperCase()}`;
+
   return {
-    id: doc._id.toString(),
+    id: hex,
     vendorId: doc.vendorId,
     vendorName: doc.vendorName || "Vendor",
+    vendorEmail: doc.vendorEmail || "—",
     plan: doc.plan || "Premium",
     amount: Number(doc.amount) || 499,
     status: doc.status || "success",
+    stripeSessionId: doc.stripeSessionId || "",
+    receiptId: receipt,
     createdAt: parseDate(doc.createdAt),
   };
 }

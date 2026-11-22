@@ -121,7 +121,7 @@ export default function SignInPage() {
     try {
       await signIn.social({
         provider: "google",
-        callbackURL: "/",
+        callbackURL: "/auth/redirect",
       });
     } catch {
       toast.add({

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   User,
   Mail,
@@ -10,6 +11,8 @@ import {
   CheckCircle2,
   Lock,
   Camera,
+  Store,
+  ArrowRight,
 } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
@@ -155,6 +158,26 @@ export default function CustomerProfilePage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* ── Become a Vendor Banner ── */}
+      <div className="flex flex-col gap-4 rounded-3xl border border-orange-500/30 bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent p-6 shadow-xl sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Store className="size-4 text-orange-400" />
+            <h3 className="text-sm font-bold text-white">Own a Pizza Restaurant or Kitchen?</h3>
+          </div>
+          <p className="mt-1 text-xs text-zinc-400">
+            Expand your business! Apply to become a PizzaHub Partner and start selling pizzas directly to customers.
+          </p>
+        </div>
+        <Link
+          href="/partnership"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-red-600 to-orange-500 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-orange-950/40 transition-opacity hover:opacity-95"
+        >
+          <span>Become a Vendor</span>
+          <ArrowRight className="size-3.5" />
+        </Link>
       </div>
 
       {/* ── Personal Info Form ── */}

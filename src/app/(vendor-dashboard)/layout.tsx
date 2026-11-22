@@ -5,14 +5,14 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { requireVendor } from "@/lib/session";
+import { proxyVendorGuard } from "@/lib/proxy";
 
 export default async function VendorLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  await requireVendor();
+  await proxyVendorGuard();
 
   return (
     <div className="dark">

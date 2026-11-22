@@ -20,7 +20,7 @@ import {
     Users,
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
-import { signUp } from "@/lib/auth-client";
+import { signUp, signIn } from "@/lib/auth-client";
 
 // Left panel er feature cards
 const features = [
@@ -172,14 +172,18 @@ export default function SignUpPage() {
     };
 
     // Google Sign Up Handler
-    const handleGoogleSignUp = () => {
-        // Google login enable korte .env e GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET lagbe
-        console.log("Google Sign Up clicked for role:", formData.role);
-        toast.add({
-            title:
-                "Google sign-up is not configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable it.",
-            type: "error",
-        });
+    const handleGoogleSignUp = async () => {
+        try {
+            await signIn.social({
+                provider: "google",
+                callbackURL: "/auth/redirect",
+            });
+        } catch {
+            toast.add({
+                title: "Could not initiate Google authentication. Please verify credentials.",
+                type: "error",
+            });
+        }
     };
 
     return (

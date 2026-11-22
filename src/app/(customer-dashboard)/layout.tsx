@@ -5,10 +5,10 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { requireCustomer } from "@/lib/session";
+import { proxyCustomerGuard } from "@/lib/proxy";
 
 const DashboardLayout = async ({ children }: { children: ReactNode }) => {
-  await requireCustomer();
+  await proxyCustomerGuard();
 
   return (
     <div className="dark">

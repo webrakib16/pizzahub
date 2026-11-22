@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, Loader2, Send } from "lucide-react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, Loader2, Send, Store, ArrowRight, LogIn } from "lucide-react";
+import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
 
 const LOCATIONS = ["Dhaka", "Chattogram", "Rajshahi", "Sylhet"];
@@ -17,6 +20,11 @@ const SPECIALTIES = [
 ];
 
 export default function PartnershipForm() {
+  const router = useRouter();
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
+  const userRole = (user as { role?: string })?.role;
+
   const [form, setForm] = useState({
     restaurantName: "",
     ownerName: "",
@@ -32,6 +40,17 @@ export default function PartnershipForm() {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Auto-fill user name and email when logged in
+  useEffect(() => {
+    if (user) {
+      setForm((prev) => ({
+        ...prev,
+        ownerName: prev.ownerName || user.name || "",
+        email: prev.email || user.email || "",
+      }));
+    }
+  }, [user]);
+
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!form.restaurantName.trim()) errs.restaurantName = "Restaurant name is required.";
@@ -43,6 +62,16 @@ export default function PartnershipForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user) {
+      toast.add({
+        title: "Please sign in to your account first before applying as a vendor.",
+        type: "error",
+      });
+      router.push("/sign-in?callbackUrl=/partnership");
+      return;
+    }
+
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -50,15 +79,66 @@ export default function PartnershipForm() {
     }
 
     setLoading(true);
-    // Simulate application processing
-    await new Promise((r) => setTimeout(r, 900));
-    setLoading(false);
-    setSubmitted(true);
-    toast.add({
-      title: "Partnership application received!",
-      type: "success",
-    });
+    try {
+      const res = await fetch("/api/vendor/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.add({
+          title: data.error || "Failed to submit partnership application.",
+          type: "error",
+        });
+        setLoading(false);
+        return;
+      }
+
+      setSubmitted(true);
+      toast.add({
+        title: "🎉 Congratulations! You are now registered as a PizzaHub Vendor.",
+        type: "success",
+      });
+
+      setTimeout(() => {
+        router.push("/vendor/dashboard");
+      }, 1500);
+    } catch {
+      toast.add({
+        title: "Network error occurred while applying. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // If already a vendor, show dashboard shortcut
+  if (userRole === "vendor") {
+    return (
+      <div className="rounded-3xl border border-orange-500/30 bg-[#141416] p-8 text-center sm:p-12 space-y-4">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-400 border border-orange-500/30">
+          <Store className="size-8" />
+        </div>
+        <h3 className="text-2xl font-black text-white">You Are Already a Vendor Partner!</h3>
+        <p className="text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
+          Your account is registered as a verified restaurant partner. You can manage your menu items, view incoming customer orders, and upgrade your subscription from the Vendor Dashboard.
+        </p>
+        <div className="pt-2">
+          <Link
+            href="/vendor/dashboard"
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-red-600 to-orange-500 px-6 py-3 text-xs font-bold text-white shadow-lg shadow-orange-950/40 hover:opacity-95 transition-opacity"
+          >
+            <span>Open Vendor Dashboard</span>
+            <ArrowRight className="size-4" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -66,35 +146,41 @@ export default function PartnershipForm() {
         <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
           <CheckCircle2 className="size-8" />
         </div>
-        <h3 className="text-2xl font-black text-white">Application Submitted!</h3>
+        <h3 className="text-2xl font-black text-white">Application Approved!</h3>
         <p className="text-sm text-zinc-300 max-w-md mx-auto leading-relaxed">
-          Thank you, <strong className="text-white">{form.ownerName}</strong>. Our partnership manager will review <strong className="text-white">{form.restaurantName}</strong> and contact you at <strong className="text-orange-400">{form.email}</strong> within 24 hours.
+          Welcome to PizzaHub Partners, <strong className="text-white">{form.ownerName}</strong>! Your restaurant <strong className="text-white">{form.restaurantName}</strong> is registered. Redirecting you to your Vendor Dashboard…
         </p>
-        <button
-          type="button"
-          onClick={() => {
-            setSubmitted(false);
-            setForm({
-              restaurantName: "",
-              ownerName: "",
-              email: "",
-              phone: "",
-              city: "Dhaka",
-              specialty: "Artisanal Neapolitan",
-              capacity: "50-100 pizzas/day",
-              message: "",
-            });
-          }}
-          className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-zinc-900 px-6 py-2.5 text-xs font-bold text-white hover:bg-white/10 transition-colors cursor-pointer"
-        >
-          Submit Another Application
-        </button>
+        <div className="pt-3">
+          <Link
+            href="/vendor/dashboard"
+            className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-6 py-2.5 text-xs font-bold text-black hover:bg-emerald-400 transition-colors"
+          >
+            <span>Go to Vendor Dashboard Now</span>
+            <ArrowRight className="size-4" />
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Not Logged In Warning banner */}
+      {!isPending && !user && (
+        <div className="flex items-center justify-between rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
+          <div className="flex items-center gap-2">
+            <LogIn className="size-4 shrink-0 text-amber-400" />
+            <span>Sign in to your account so we can link your restaurant profile.</span>
+          </div>
+          <Link
+            href="/sign-in?callbackUrl=/partnership"
+            className="font-bold underline hover:text-white shrink-0 ml-2"
+          >
+            Sign In
+          </Link>
+        </div>
+      )}
+
       <div className="grid gap-5 sm:grid-cols-2">
         {/* Restaurant Name */}
         <div className="flex flex-col gap-1.5">
@@ -235,12 +321,12 @@ export default function PartnershipForm() {
         {loading ? (
           <>
             <Loader2 className="size-4 animate-spin" />
-            Submitting Application…
+            Upgrading to Vendor…
           </>
         ) : (
           <>
             <Send className="size-4" />
-            Submit Partnership Application
+            Submit & Become a Partner
           </>
         )}
       </button>

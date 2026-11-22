@@ -1,66 +1,45 @@
 import { cache } from "react";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import {
+  proxyAuthGuard,
+  proxyCustomerGuard,
+  proxyVendorGuard,
+  proxyAdminGuard,
+} from "@/lib/proxy";
 
 export const getSession = cache(async () => {
   return auth.api.getSession({ headers: await headers() });
 });
 
 /**
- * Server-side guard for dashboard pages. Redirects signed-out visitors to
- * the sign-in page and returns the current user otherwise.
+ * Server-side guard for dashboard pages.
+ * Enforces unauthenticated -> /sign-in and blocked -> /sign-in?error=blocked.
  */
 export async function requireUser() {
-  const session = await getSession();
-
-  if (!session?.user) {
-    redirect("/sign-in");
-  }
-
-  return session.user;
+  return proxyAuthGuard();
 }
 
 /**
- * Guard for Customer Dashboard. Redirects vendors and admins to their
- * respective dashboards.
+ * Guard for Customer Dashboard:
+ * Only Customers can access. Redirects Vendors and Admins to their respective dashboards.
  */
 export async function requireCustomer() {
-  const user = await requireUser();
-
-  if (user.role === "vendor") {
-    redirect("/vendor/dashboard");
-  }
-
-  if (user.role === "admin") {
-    redirect("/admin/dashboard");
-  }
-
-  return user;
+  return proxyCustomerGuard();
 }
 
 /**
- * Guard for Vendor Dashboard. Only vendors and admins may enter.
+ * Guard for Vendor Dashboard:
+ * Only Vendors can access.
  */
 export async function requireVendor() {
-  const user = await requireUser();
-
-  if (user.role !== "vendor" && user.role !== "admin") {
-    redirect("/dashboard");
-  }
-
-  return user;
+  return proxyVendorGuard();
 }
 
 /**
- * Guard for Admin Dashboard. Only admins may enter.
+ * Guard for Admin Dashboard:
+ * Only Admins can access.
  */
 export async function requireAdmin() {
-  const user = await requireUser();
-
-  if (user.role !== "admin") {
-    redirect("/dashboard");
-  }
-
-  return user;
+  return proxyAdminGuard();
 }

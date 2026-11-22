@@ -5,14 +5,14 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { requireAdmin } from "@/lib/session";
+import { proxyAdminGuard } from "@/lib/proxy";
 
 export default async function AdminLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  await requireAdmin();
+  await proxyAdminGuard();
 
   return (
     <div className="dark">
