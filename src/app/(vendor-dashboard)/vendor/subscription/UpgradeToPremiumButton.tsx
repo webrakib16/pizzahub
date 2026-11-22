@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/toast";
-import { authClient } from "@/lib/auth-client";
 
 export default function UpgradeToPremiumButton({
   isPremium = false,
@@ -24,30 +23,20 @@ export default function UpgradeToPremiumButton({
     try {
       setIsLoading(true);
 
-      const sessionRes = await authClient.getSession();
-      const token = sessionRes?.data?.session?.token;
-
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/vendor/subscription/checkout`, {
+      // Call the Next.js internal checkout session route — no CORS issues, session handled server-side
+      const res = await fetch("/api/checkout_sessions", {
         method: "POST",
-        headers,
-        credentials: "include",
+        headers: { "Content-Type": "application/json" },
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || data.error || "Failed to start checkout session.");
+        throw new Error(data.error || "Failed to start checkout session.");
       }
 
       if (data.url) {
+        // Redirect to Stripe-hosted Checkout page
         window.location.href = data.url;
       } else {
         throw new Error("No checkout URL returned from payment server.");
@@ -56,7 +45,7 @@ export default function UpgradeToPremiumButton({
       const message =
         err instanceof Error
           ? err.message
-          : "Failed to connect to payment server. Please ensure the backend is running.";
+          : "Failed to connect to payment server. Please try again.";
       toast.add({
         title: "Checkout Error",
         description: message,

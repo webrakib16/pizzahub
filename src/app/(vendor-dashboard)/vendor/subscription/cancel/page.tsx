@@ -1,12 +1,20 @@
 import Link from "next/link";
 import { XCircle, ArrowLeft, RefreshCw } from "lucide-react";
 import { requireVendor } from "@/lib/session";
+import SubscriptionStatusToast from "../SubscriptionStatusToast";
 
 export default async function PaymentCancelPage() {
   await requireVendor();
 
   return (
     <div className="mx-auto w-full max-w-md py-12">
+      {/* Toast notification using shadcn Base-UI Toast */}
+      <SubscriptionStatusToast
+        type="error"
+        title="Payment Cancelled"
+        description="Your card was not charged. You can upgrade anytime."
+      />
+
       <div className="rounded-3xl border border-white/10 bg-[#141416] p-8 text-center shadow-xl sm:p-10">
         {/* Cancel Icon */}
         <div className="mx-auto flex size-16 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 text-zinc-400">

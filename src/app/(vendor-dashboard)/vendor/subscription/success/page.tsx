@@ -1,18 +1,96 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CheckCircle2, Sparkles, PlusCircle, LayoutDashboard, ArrowRight } from "lucide-react";
 import { requireVendor } from "@/lib/session";
+import { stripe } from "@/lib/stripe";
+import { getDb } from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
+import SubscriptionStatusToast from "../SubscriptionStatusToast";
 
 export default async function PaymentSuccessPage({
   searchParams,
 }: {
   searchParams: Promise<{ session_id?: string }>;
 }) {
-  await requireVendor();
+  const user = await requireVendor();
   const params = await searchParams;
   const sessionId = params.session_id;
 
+  if (!sessionId) {
+    redirect("/vendor/subscription");
+  }
+
+  let checkoutSession;
+  try {
+    checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["line_items", "payment_intent"],
+    });
+  } catch (error) {
+    console.error("Error retrieving checkout session:", error);
+    redirect("/vendor/subscription");
+  }
+
+  if (checkoutSession.status === "open") {
+    redirect("/vendor/subscription");
+  }
+
+  // If payment completed, update vendor premium status in MongoDB
+  if (checkoutSession.status === "complete") {
+    try {
+      const db = getDb();
+      const vendorId = user.id;
+      const userFilter = ObjectId.isValid(vendorId)
+        ? { $or: [{ id: vendorId }, { _id: new ObjectId(vendorId) }] }
+        : { id: vendorId };
+
+      await db.collection("user").updateOne(userFilter, {
+        $set: {
+          isPremium: true,
+          subscription: "premium",
+          premiumSince: new Date(),
+        },
+      });
+
+      await db.collection("vendorShops").updateOne(
+        { vendorId },
+        { $set: { isPremium: true } }
+      );
+
+      // Record transaction if not already saved
+      const existingTx = await db.collection("transactions").findOne({
+        stripeSessionId: sessionId,
+      });
+
+      if (!existingTx) {
+        await db.collection("transactions").insertOne({
+          vendorId,
+          vendorName: user.name || "Vendor",
+          vendorEmail: user.email,
+          plan: "Premium",
+          amount: 499,
+          currency: "BDT",
+          paymentMethod: "card",
+          status: "success",
+          stripeSessionId: sessionId,
+          createdAt: new Date(),
+        });
+      }
+    } catch (err) {
+      console.error("Error updating vendor premium in DB:", err);
+    }
+  }
+
+  const customerEmail = checkoutSession.customer_details?.email || user.email;
+
   return (
     <div className="mx-auto w-full max-w-xl py-8">
+      {/* Toast notification using shadcn Base-UI Toast */}
+      <SubscriptionStatusToast
+        type="success"
+        title="Payment Successful!"
+        description="Welcome to Premium! Unlimited active menu items are now unlocked."
+      />
+
       <div className="rounded-3xl border border-white/10 bg-[#141416] p-8 text-center shadow-2xl relative overflow-hidden sm:p-10">
         {/* Decorative background glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-32 bg-orange-500/10 blur-3xl pointer-events-none" />
@@ -34,7 +112,8 @@ export default async function PaymentSuccessPage({
         </h1>
 
         <p className="mt-2 text-sm text-zinc-300 leading-relaxed max-w-md mx-auto">
-          Thank you for upgrading! Your transaction was processed securely via Stripe.
+          We appreciate your business! A confirmation email has been sent to{" "}
+          <span className="font-semibold text-white">{customerEmail}</span>.
           Your subscription is now active with unlimited menu item publishing.
         </p>
 
