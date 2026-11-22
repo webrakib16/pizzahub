@@ -222,7 +222,7 @@ function DualRangeSlider({
   );
 }
 
-// ─── Searchable Location Dropdown ─────────────────────────────────────────────
+// ─── Searchable Location Dropdown ──────────────────────────
 
 interface SearchableLocationProps {
   selected: string;
