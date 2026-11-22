@@ -222,7 +222,7 @@ function DualRangeSlider({
   );
 }
 
-// ─── Searchable Location Dropdown ──────────────────────────
+// ─── Searchable Location Dropdown ───
 
 interface SearchableLocationProps {
   selected: string;
@@ -333,7 +333,7 @@ function SearchableLocationSelect({ selected, onSelect }: SearchableLocationProp
   );
 }
 
-// ─── Filter Panel (Desktop & Mobile Shared) ───────────────────────────────────
+// ─── Filter Panel (Desktop & Mobile Shared) ───
 
 interface FilterPanelProps {
   minPrice: number;
