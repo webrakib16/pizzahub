@@ -485,7 +485,7 @@ function FilterPanel({
   );
 }
 
-// ─── Zero-Layout-Shift Skeleton Card ──────────────────────────────────────────
+// ─── Zero-Layout-Shift Skeleton Card ───
 
 function SkeletonCard() {
   return (
