@@ -24,6 +24,10 @@ export async function POST(request: Request) {
     );
   }
 
+  if (session.user.role === "admin") {
+    return badRequest("Admins cannot place customer orders.");
+  }
+
   let body: unknown;
 
   try {
@@ -83,6 +87,13 @@ export async function POST(request: Request) {
 
   if (!priced.ok) {
     return badRequest(priced.error);
+  }
+
+  if (
+    session.user.role === "vendor" &&
+    priced.priced.vendorIds.includes(session.user.id)
+  ) {
+    return badRequest("Vendors cannot order their own items.");
   }
 
   const deliveryCharge = getDeliveryCharge(deliveryLocation);

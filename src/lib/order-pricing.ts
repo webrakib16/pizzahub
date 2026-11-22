@@ -32,6 +32,7 @@ function normalizeCrust(value: string): string {
 export interface PricedOrder {
   items: OrderItem[];
   subtotal: number;
+  vendorIds: string[];
 }
 
 export type PriceResult =
@@ -59,6 +60,7 @@ export async function priceOrderItems(rawItems: unknown): Promise<PriceResult> {
   }
 
   const items: OrderItem[] = [];
+  const vendorIds: string[] = [];
 
   for (const raw of rawItems as RawOrderItem[]) {
     if (typeof raw?.menuItemId !== "string") {
@@ -85,6 +87,9 @@ export async function priceOrderItems(rawItems: unknown): Promise<PriceResult> {
           .collection("menuItems")
           .findOne({ _id: new ObjectId(raw.menuItemId) });
         if (doc) {
+          if (doc.vendorId) {
+            vendorIds.push(String(doc.vendorId));
+          }
           resolvedItem = {
             id: doc._id.toString(),
             name: doc.name,
@@ -147,7 +152,7 @@ export async function priceOrderItems(rawItems: unknown): Promise<PriceResult> {
     0
   );
 
-  return { ok: true, priced: { items, subtotal } };
+  return { ok: true, priced: { items, subtotal, vendorIds } };
 }
 
 export function getDeliveryCharge(location: DeliveryLocation): number {

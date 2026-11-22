@@ -11,7 +11,16 @@ import {
 export const getSession = cache(async () => {
   try {
     return await auth.api.getSession({ headers: await headers() });
-  } catch (err) {
+  } catch (err: unknown) {
+    // Re-throw Next.js internal control-flow signals (e.g. DYNAMIC_SERVER_USAGE, NEXT_REDIRECT)
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "digest" in err &&
+      typeof (err as { digest: string }).digest === "string"
+    ) {
+      throw err;
+    }
     console.error("[Session] Error fetching session:", err);
     return null;
   }

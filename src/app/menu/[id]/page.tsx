@@ -327,8 +327,14 @@ export default function MenuItemDetailPage({ params }: PageProps) {
   // Only approved and active items can be ordered
   const canOrder = item.isActive && item.status === "approved";
 
-  // Role Checks
+  // Role Checks & Restrictions
   const userRole = session?.user?.role;
+  const isAdmin = userRole === "admin";
+  const isVendorOwner = Boolean(
+    session?.user?.id &&
+    (dbProduct?.vendorId === session.user.id || (currentProduct as unknown as { vendorId?: string })?.vendorId === session.user.id)
+  );
+  const canUserOrder = canOrder && !isAdmin && !isVendorOwner;
 
   // ── Gallery Images (Supports uploaded images array or fallback photography) ─
   const productImages = (currentProduct as unknown as { images?: string[] })?.images;
@@ -364,6 +370,13 @@ export default function MenuItemDetailPage({ params }: PageProps) {
         type: "info",
       });
       router.push("/sign-in");
+      return;
+    }
+    if (isAdmin) {
+      toast.add({
+        title: "Admins do not have a wishlist",
+        type: "info",
+      });
       return;
     }
     const added = toggleWishlistItem({
@@ -405,6 +418,13 @@ export default function MenuItemDetailPage({ params }: PageProps) {
       router.push("/sign-in");
       return;
     }
+    if (isAdmin) {
+      toast.add({
+        title: "Admins do not have a wishlist",
+        type: "info",
+      });
+      return;
+    }
     const added = toggleWishlistItem({
       id: prod.id,
       name: prod.name,
@@ -435,6 +455,14 @@ export default function MenuItemDetailPage({ params }: PageProps) {
     if (userRole === "admin") {
       toast.add({
         title: "Admins cannot place customer orders",
+        type: "error",
+      });
+      return false;
+    }
+
+    if (isVendorOwner) {
+      toast.add({
+        title: "Vendors cannot order their own items",
         type: "error",
       });
       return false;
@@ -580,18 +608,20 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                 {/* Subtle vignette shadow */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
 
-                {/* Wishlist Heart Button — top right dark circular pill */}
-                <button
-                  type="button"
-                  onClick={handleWishlistToggle}
-                  aria-label="Toggle wishlist"
-                  className="absolute top-4 right-4 flex size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/70 hover:scale-105 transition-all shadow-md z-10 cursor-pointer"
-                >
-                  <Heart
-                    className={`size-5 transition-colors ${isWishlisted ? "fill-orange-500 text-orange-500" : "text-white"
-                      }`}
-                  />
-                </button>
+                {/* Wishlist Heart Button — top right dark circular pill (hidden for admins) */}
+                {!isAdmin && (
+                  <button
+                    type="button"
+                    onClick={handleWishlistToggle}
+                    aria-label="Toggle wishlist"
+                    className="absolute top-4 right-4 flex size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/70 hover:scale-105 transition-all shadow-md z-10 cursor-pointer"
+                  >
+                    <Heart
+                      className={`size-5 transition-colors ${isWishlisted ? "fill-orange-500 text-orange-500" : "text-white"
+                        }`}
+                    />
+                  </button>
+                )}
 
                 {/* Previous Image Navigation Arrow Button */}
                 <button
@@ -794,7 +824,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    disabled={quantity <= 1 || !canOrder}
+                    disabled={quantity <= 1 || !canUserOrder}
                     aria-label="Decrease quantity"
                     className="flex size-7 sm:size-8 items-center justify-center rounded-full text-zinc-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   >
@@ -808,7 +838,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => q + 1)}
-                    disabled={!canOrder}
+                    disabled={!canUserOrder}
                     aria-label="Increase quantity"
                     className="flex size-7 sm:size-8 items-center justify-center rounded-full text-zinc-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   >
@@ -820,7 +850,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  disabled={!canOrder}
+                  disabled={!canUserOrder}
                   className={`inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-bold transition-all shadow-lg shadow-orange-950/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${isAddedToCart
                     ? "bg-emerald-600 text-white scale-95"
                     : "bg-gradient-to-r from-red-600 to-orange-500 text-white hover:opacity-95 active:scale-95"
@@ -834,7 +864,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                 <button
                   type="button"
                   onClick={handleOrderNow}
-                  disabled={!canOrder}
+                  disabled={!canUserOrder}
                   className="px-6 py-3 rounded-full border border-white/20 bg-[#161619] hover:border-orange-500/60 hover:bg-[#1a1a1e] active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <span className="bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 bg-clip-text text-transparent font-black text-xs sm:text-sm">
@@ -847,6 +877,20 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                 <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 p-3 flex items-center gap-2.5 text-xs text-amber-400">
                   <AlertCircle className="size-4 shrink-0 text-amber-500" />
                   <span>This item is currently inactive or awaiting approval and cannot be ordered.</span>
+                </div>
+              )}
+
+              {isAdmin && (
+                <div className="rounded-xl bg-blue-500/10 border border-blue-500/25 p-3 flex items-center gap-2.5 text-xs text-blue-400">
+                  <ShieldCheck className="size-4 shrink-0 text-blue-400" />
+                  <span>Admins cannot place customer orders. Manage this item from the Admin Dashboard.</span>
+                </div>
+              )}
+
+              {isVendorOwner && (
+                <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 p-3 flex items-center gap-2.5 text-xs text-amber-400">
+                  <AlertCircle className="size-4 shrink-0 text-amber-400" />
+                  <span>You are the vendor of this item. Vendors cannot order their own items.</span>
                 </div>
               )}
 
@@ -1001,18 +1045,20 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                                 <div className="size-full flex items-center justify-center text-3xl">🍕</div>
                               )}
 
-                              <button
-                                type="button"
-                                onClick={(e) => handleRelatedWishlistToggle({ ...prod, image: displayImg }, e)}
-                                aria-label="Wishlist"
-                                className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/60 transition-colors cursor-pointer"
-                              >
-                                <Heart
-                                  className={`size-3.5 ${
-                                    isRelFav ? "fill-orange-500 text-orange-500" : "text-white"
-                                  }`}
-                                />
-                              </button>
+                              {!isAdmin && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleRelatedWishlistToggle({ ...prod, image: displayImg }, e)}
+                                  aria-label="Wishlist"
+                                  className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/60 transition-colors cursor-pointer"
+                                >
+                                  <Heart
+                                    className={`size-3.5 ${
+                                      isRelFav ? "fill-orange-500 text-orange-500" : "text-white"
+                                    }`}
+                                  />
+                                </button>
+                              )}
                             </div>
 
                             {/* Product Name */}

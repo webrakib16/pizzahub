@@ -72,10 +72,11 @@ export default function Navbar() {
 
   const user = session?.user;
   const isLoggedIn = Boolean(user);
+  const isNotAdmin = user?.role !== "admin";
   const navLinks = getNavLinks(user?.role);
   const wishlistHref = user?.role === "vendor" ? "/vendor/wishlist" : "/wishlist";
-  // Floating Wishlist button shows on all pages (including Homepage) whenever user has 1+ items in wishlist
-  const shouldShowFloatingWishlist = wishlistCount > 0;
+  // Floating Wishlist button shows on all pages (including Homepage) whenever user has 1+ items in wishlist (hidden for admins)
+  const shouldShowFloatingWishlist = isNotAdmin && wishlistCount > 0;
 
   // Dropdown er baire click ba Escape chaple dropdown bondho hoy
   useEffect(() => {
@@ -326,15 +327,17 @@ export default function Navbar() {
                       <Settings className="size-4 text-zinc-400" />
                       Profile Settings
                     </Link>
-                    <Link
-                      href={wishlistHref}
-                      role="menuitem"
-                      onClick={closeAll}
-                      className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:bg-white/5 hover:text-orange-500"
-                    >
-                      <Heart className="size-4 text-zinc-400" />
-                      Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ""}
-                    </Link>
+                    {isNotAdmin && (
+                      <Link
+                        href={wishlistHref}
+                        role="menuitem"
+                        onClick={closeAll}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:bg-white/5 hover:text-orange-500"
+                      >
+                        <Heart className="size-4 text-zinc-400" />
+                        Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ""}
+                      </Link>
+                    )}
                   </div>
 
                   {/* Logout */}
