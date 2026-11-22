@@ -504,7 +504,7 @@ function SkeletonCard() {
   );
 }
 
-// ─── Main Menu Page Component ─────────────────────────────────────────────────
+// Main Menu Page Component
 
 interface PublicMenuItemDto {
   id: string;
@@ -711,7 +711,7 @@ export default function MenuPage() {
     selectedSizes.length +
     selectedCrusts.length;
 
-  // ── Combined Filtering Logic ────────────────────────────────────────────────
+  // Combined Filtering Logic
   const filteredItems = useMemo(() => {
     return liveMenuItems.filter((item) => {
       // Search by Name (case-insensitive)
