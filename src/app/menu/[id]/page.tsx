@@ -96,8 +96,15 @@ interface PageProps {
 export default function MenuItemDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const isLoggedIn = Boolean(session?.user);
+
+  // Client-side authentication guard: redirect to Sign In if not logged in
+  useEffect(() => {
+    if (!isPending && !session?.user) {
+      router.replace(`/sign-in?callbackUrl=${encodeURIComponent(`/menu/${id}`)}`);
+    }
+  }, [isPending, session, router, id]);
 
   // ── Find Current Product (exclusively from real DB via API) ─────────────
   interface DynamicItem {

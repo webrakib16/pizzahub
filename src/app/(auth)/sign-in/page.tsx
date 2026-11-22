@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useIsMounted } from "@/hooks/use-is-mounted";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { signIn } from "@/lib/auth-client";
 
-export default function SignInPage() {
+function SignInContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || searchParams.get("callbackURL");
 
   // Form State
   const [formData, setFormData] = useState({
@@ -99,6 +101,12 @@ export default function SignInPage() {
         type: "success",
       });
       setTimeout(() => {
+        // If a valid callbackUrl exists (e.g. /menu/[id]), redirect back to it
+        if (callbackUrl && callbackUrl.startsWith("/")) {
+          router.push(callbackUrl);
+          return;
+        }
+
         if (role === "vendor") {
           router.push("/vendor/dashboard");
         } else if (role === "admin") {
@@ -119,9 +127,14 @@ export default function SignInPage() {
   // Event handler for Google login
   const handleGoogleSignIn = async () => {
     try {
+      const redirectTarget =
+        callbackUrl && callbackUrl.startsWith("/")
+          ? `/auth/redirect?callbackUrl=${encodeURIComponent(callbackUrl)}`
+          : "/auth/redirect";
+
       await signIn.social({
         provider: "google",
-        callbackURL: "/auth/redirect",
+        callbackURL: redirectTarget,
       });
     } catch {
       toast.add({
@@ -331,5 +344,13 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <SignInContent />
+    </Suspense>
   );
 }
