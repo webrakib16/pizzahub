@@ -780,7 +780,7 @@ export default function MenuPage() {
     sortBy,
   ]);
 
-  // ── Pagination Calculation ────────────────────────────────────────────────
+  // Pagination Calculation 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
 
   // Reset to page 1 whenever filters change
