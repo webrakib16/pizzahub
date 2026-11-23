@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
+import { safeFetchApi } from "@/lib/api-client";
 import {
   CheckCircle2,
   Clock,
@@ -47,20 +48,12 @@ export default function AdminMenuList({
   ) => {
     setLoadingId(id);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      let res = await fetch(`${apiUrl}/api/admin/menu/${id}/status`, {
+      const res = await safeFetchApi(`/api/admin/menu/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) {
-        res = await fetch(`/api/admin/menu/${id}/status`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        });
-      }
       const data = await res.json();
       if (!res.ok) {
         toast.add({ title: data.error || "Failed to update item", type: "error" });
@@ -84,16 +77,10 @@ export default function AdminMenuList({
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
     setLoadingId(id);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      let res = await fetch(`${apiUrl}/api/admin/menu/${id}/status`, {
+      const res = await safeFetchApi(`/api/admin/menu/${id}/status`, {
         method: "DELETE",
         credentials: "include",
       });
-      if (!res.ok) {
-        res = await fetch(`/api/admin/menu/${id}/status`, {
-          method: "DELETE",
-        });
-      }
       if (!res.ok) {
         toast.add({ title: "Could not delete item", type: "error" });
         return;

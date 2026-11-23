@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Loader2, Search, ShieldOff, ShieldCheck, Users } from "lucide-react";
 import type { AppUser } from "@/lib/users";
 import { toast } from "@/components/ui/toast";
+import { safeFetchApi } from "@/lib/api-client";
 
 export default function AdminUsersList({
   initialUsers,
@@ -35,20 +36,12 @@ export default function AdminUsersList({
   const handleBlockToggle = async (user: AppUser) => {
     setLoadingId(user.id);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      let res = await fetch(`${apiUrl}/api/admin/users/${user.id}/block`, {
+      const res = await safeFetchApi(`/api/admin/users/${user.id}/block`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ blocked: !user.blocked }),
       });
-      if (!res.ok) {
-        res = await fetch(`/api/admin/users/${user.id}/block`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ blocked: !user.blocked }),
-        });
-      }
       const data = await res.json();
       if (!res.ok) {
         toast.add({ title: data.error || "Failed to update user", type: "error" });

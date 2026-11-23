@@ -15,6 +15,7 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { useWishlist } from "@/hooks/use-wishlist";
+import { safeFetchApi } from "@/lib/api-client";
 
 function PizzaSliceIcon({ className = "size-5 text-orange-500" }: { className?: string }) {
   return (
@@ -109,11 +110,7 @@ export default function FeaturedMenuItems() {
     let isMounted = true;
     async function loadFeatured() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-        let res = await fetch(`${apiUrl}/api/menu/public`);
-        if (!res.ok) {
-          res = await fetch("/api/menu/public");
-        }
+        const res = await safeFetchApi("/api/menu/public");
         if (res.ok) {
           const allItems = (await res.json()) as PublicMenuItemDto[];
           if (isMounted && Array.isArray(allItems)) {
@@ -310,11 +307,10 @@ export default function FeaturedMenuItems() {
                   >
                     {/* The Visual Card */}
                     <div
-                      className={`w-full h-full rounded-[24px] overflow-hidden flex flex-col p-3 bg-[#141416] border transition-all duration-300 shadow-2xl ${
-                        isCenter
-                          ? "border-orange-500/90 ring-2 ring-orange-500/50 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_30px_rgba(249,115,22,0.35)]"
-                          : "border-white/10 opacity-75 hover:opacity-100 hover:border-white/30"
-                      }`}
+                      className={`w-full h-full rounded-[24px] overflow-hidden flex flex-col p-3 bg-[#141416] border transition-all duration-300 shadow-2xl ${isCenter
+                        ? "border-orange-500/90 ring-2 ring-orange-500/50 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_30px_rgba(249,115,22,0.35)]"
+                        : "border-white/10 opacity-75 hover:opacity-100 hover:border-white/30"
+                        }`}
                     >
                       {loading ? (
                         /* Zero-Layout-Shift 3D Skeleton Card */
@@ -374,9 +370,8 @@ export default function FeaturedMenuItems() {
                               className="absolute top-2.5 right-2.5 z-10 size-7 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:text-red-500 hover:bg-black/80 transition-colors"
                             >
                               <Heart
-                                className={`size-3.5 transition-colors ${
-                                  isFav ? "fill-red-500 text-red-500" : "text-white/80"
-                                }`}
+                                className={`size-3.5 transition-colors ${isFav ? "fill-red-500 text-red-500" : "text-white/80"
+                                  }`}
                               />
                             </button>
                           </div>
@@ -482,11 +477,10 @@ export default function FeaturedMenuItems() {
                 className="group p-1.5 cursor-pointer"
               >
                 <div
-                  className={`h-2.5 rounded-full transition-all duration-300 ${
-                    isCenter
-                      ? "w-8 bg-gradient-to-r from-red-600 to-orange-500 shadow-lg shadow-orange-500/50"
-                      : "w-2.5 bg-white/20 hover:bg-white/40"
-                  }`}
+                  className={`h-2.5 rounded-full transition-all duration-300 ${isCenter
+                    ? "w-8 bg-gradient-to-r from-red-600 to-orange-500 shadow-lg shadow-orange-500/50"
+                    : "w-2.5 bg-white/20 hover:bg-white/40"
+                    }`}
                 />
               </button>
             );

@@ -28,6 +28,7 @@ import type { MenuItem } from "@/data/menu-data";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
 import { useWishlist } from "@/hooks/use-wishlist";
+import { safeFetchApi } from "@/lib/api-client";
 import {
   Sheet,
   SheetContent,
@@ -260,9 +261,8 @@ function SearchableLocationSelect({ selected, onSelect }: SearchableLocationProp
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-orange-500 pointer-events-none" />
         <span className="truncate">{selected}</span>
         <ChevronDown
-          className={`size-3.5 text-zinc-400 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`size-3.5 text-zinc-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+            }`}
         />
       </button>
 
@@ -309,11 +309,10 @@ function SearchableLocationSelect({ selected, onSelect }: SearchableLocationProp
                         setIsOpen(false);
                         setQuery("");
                       }}
-                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs text-left transition-colors ${
-                        isSelected
-                          ? "bg-orange-500/15 text-orange-400 font-bold"
-                          : "text-zinc-300 hover:bg-white/5 hover:text-white"
-                      }`}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs text-left transition-colors ${isSelected
+                        ? "bg-orange-500/15 text-orange-400 font-bold"
+                        : "text-zinc-300 hover:bg-white/5 hover:text-white"
+                        }`}
                     >
                       <span className="truncate">{loc}</span>
                       {isSelected && <Check className="size-3 text-orange-500 shrink-0" />}
@@ -426,11 +425,10 @@ function FilterPanel({
                 className="flex items-center gap-3 text-xs text-zinc-300 hover:text-white cursor-pointer select-none group"
               >
                 <div
-                  className={`flex size-4 items-center justify-center rounded border transition-colors ${
-                    checked
-                      ? "bg-orange-500 border-orange-500 text-white"
-                      : "border-zinc-700 bg-zinc-900 group-hover:border-zinc-500"
-                  }`}
+                  className={`flex size-4 items-center justify-center rounded border transition-colors ${checked
+                    ? "bg-orange-500 border-orange-500 text-white"
+                    : "border-zinc-700 bg-zinc-900 group-hover:border-zinc-500"
+                    }`}
                 >
                   {checked && <Check className="size-3 stroke-[3]" />}
                 </div>
@@ -465,11 +463,10 @@ function FilterPanel({
                 className="flex items-center gap-3 text-xs text-zinc-300 hover:text-white cursor-pointer select-none group"
               >
                 <div
-                  className={`flex size-4 items-center justify-center rounded border transition-colors ${
-                    checked
-                      ? "bg-orange-500 border-orange-500 text-white"
-                      : "border-zinc-700 bg-zinc-900 group-hover:border-zinc-500"
-                  }`}
+                  className={`flex size-4 items-center justify-center rounded border transition-colors ${checked
+                    ? "bg-orange-500 border-orange-500 text-white"
+                    : "border-zinc-700 bg-zinc-900 group-hover:border-zinc-500"
+                    }`}
                 >
                   {checked && <Check className="size-3 stroke-[3]" />}
                 </div>
@@ -547,11 +544,7 @@ export default function MenuPage() {
     let isMounted = true;
     async function loadMenu() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-        let res = await fetch(`${apiUrl}/api/menu/public`);
-        if (!res.ok) {
-          res = await fetch("/api/menu/public");
-        }
+        const res = await safeFetchApi("/api/menu/public");
         if (res.ok) {
           const data = (await res.json()) as PublicMenuItemDto[];
           if (isMounted && Array.isArray(data)) {
@@ -894,11 +887,10 @@ export default function MenuPage() {
                       setActiveCategory(tab.slug);
                       triggerFilterTransition();
                     }}
-                    className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 lg:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
-                      isActive
-                        ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-lg shadow-orange-950/40 border-t border-x border-t-white/80 border-x-white/40 border-b-2 border-b-orange-400 scale-[1.02]"
-                        : "bg-[#141416] border-t border-x border-t-white/80 border-x-white/40 border-b-2 border-b-orange-500 text-zinc-300 hover:text-white hover:border-t-orange-500 hover:border-x-orange-500 hover:border-b-white"
-                    }`}
+                    className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 lg:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${isActive
+                      ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-lg shadow-orange-950/40 border-t border-x border-t-white/80 border-x-white/40 border-b-2 border-b-orange-400 scale-[1.02]"
+                      : "bg-[#141416] border-t border-x border-t-white/80 border-x-white/40 border-b-2 border-b-orange-500 text-zinc-300 hover:text-white hover:border-t-orange-500 hover:border-x-orange-500 hover:border-b-white"
+                      }`}
                   >
                     <CategoryTabIcon type={tab.type} className="size-4" />
                     <span>{tab.label}</span>
@@ -974,9 +966,8 @@ export default function MenuPage() {
                         {SORT_OPTIONS.find((s) => s.value === sortBy)?.label}
                       </span>
                       <ChevronDown
-                        className={`size-3.5 text-zinc-400 transition-transform ${
-                          isSortOpen ? "rotate-180" : ""
-                        }`}
+                        className={`size-3.5 text-zinc-400 transition-transform ${isSortOpen ? "rotate-180" : ""
+                          }`}
                       />
                     </button>
 
@@ -996,11 +987,10 @@ export default function MenuPage() {
                                 setSortBy(opt.value);
                                 setIsSortOpen(false);
                               }}
-                              className={`w-full text-left px-4 py-2.5 text-xs transition-colors ${
-                                sortBy === opt.value
-                                  ? "bg-orange-500/10 text-orange-400 font-bold"
-                                  : "text-zinc-300 hover:bg-white/5"
-                              }`}
+                              className={`w-full text-left px-4 py-2.5 text-xs transition-colors ${sortBy === opt.value
+                                ? "bg-orange-500/10 text-orange-400 font-bold"
+                                : "text-zinc-300 hover:bg-white/5"
+                                }`}
                             >
                               {opt.label}
                             </button>
@@ -1014,11 +1004,10 @@ export default function MenuPage() {
                   <div className="hidden sm:flex items-center p-1 rounded-xl bg-[#141416] border border-white/10">
                     <button
                       onClick={() => setViewMode("grid")}
-                      className={`p-1.5 rounded-lg transition-all ${
-                        viewMode === "grid"
-                          ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-sm"
-                          : "text-zinc-400 hover:text-white"
-                      }`}
+                      className={`p-1.5 rounded-lg transition-all ${viewMode === "grid"
+                        ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                        }`}
                       aria-label="Grid View"
                       title="Grid View"
                     >
@@ -1026,11 +1015,10 @@ export default function MenuPage() {
                     </button>
                     <button
                       onClick={() => setViewMode("list")}
-                      className={`p-1.5 rounded-lg transition-all ${
-                        viewMode === "list"
-                          ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-sm"
-                          : "text-zinc-400 hover:text-white"
-                      }`}
+                      className={`p-1.5 rounded-lg transition-all ${viewMode === "list"
+                        ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                        }`}
                       aria-label="List View"
                       title="List View"
                     >
@@ -1237,9 +1225,8 @@ export default function MenuPage() {
                                   aria-label="Wishlist"
                                 >
                                   <Heart
-                                    className={`size-4 transition-colors ${
-                                      isFavorited ? "fill-orange-500 text-orange-500" : "text-white"
-                                    }`}
+                                    className={`size-4 transition-colors ${isFavorited ? "fill-orange-500 text-orange-500" : "text-white"
+                                      }`}
                                   />
                                 </button>
                               </div>
@@ -1324,9 +1311,8 @@ export default function MenuPage() {
                                   aria-label="Wishlist"
                                 >
                                   <Heart
-                                    className={`size-4.5 transition-colors ${
-                                      isFavorited ? "fill-orange-500 text-orange-500" : "text-white"
-                                    }`}
+                                    className={`size-4.5 transition-colors ${isFavorited ? "fill-orange-500 text-orange-500" : "text-white"
+                                      }`}
                                   />
                                 </button>
 
@@ -1417,11 +1403,10 @@ export default function MenuPage() {
                                 setCurrentPage(page);
                                 window.scrollTo({ top: 400, behavior: "smooth" });
                               }}
-                              className={`size-9 rounded-xl text-xs font-bold transition-all ${
-                                isCurrent
-                                  ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-md shadow-orange-950/40"
-                                  : "bg-[#141416] border border-white/10 text-zinc-400 hover:border-orange-500/40 hover:text-white"
-                              }`}
+                              className={`size-9 rounded-xl text-xs font-bold transition-all ${isCurrent
+                                ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-md shadow-orange-950/40"
+                                : "bg-[#141416] border border-white/10 text-zinc-400 hover:border-orange-500/40 hover:text-white"
+                                }`}
                             >
                               {page}
                             </button>

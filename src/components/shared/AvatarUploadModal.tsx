@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Camera, ImagePlus, Link2, Loader2, X } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { safeFetchApi } from "@/lib/api-client";
 
 interface AvatarUploadModalProps {
   isOpen: boolean;
@@ -77,20 +78,12 @@ export default function AvatarUploadModal({
       }
 
       setSaving(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      let res = await fetch(`${apiUrl}/api/user/image`, {
+      const res = await safeFetchApi("/api/user/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ image: finalUrl }),
       });
-      if (!res.ok) {
-        res = await fetch("/api/user/image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: finalUrl }),
-        });
-      }
 
       const data = await res.json();
       if (!res.ok) {

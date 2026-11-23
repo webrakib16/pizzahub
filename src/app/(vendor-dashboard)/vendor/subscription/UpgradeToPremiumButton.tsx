@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { safeFetchApi } from "@/lib/api-client";
 
 export default function UpgradeToPremiumButton({
   isPremium = false,
@@ -23,16 +24,12 @@ export default function UpgradeToPremiumButton({
     try {
       setIsLoading(true);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-      // 1. Primary: Request Stripe Checkout Session from Express Backend
-      let res = await fetch(`${apiUrl}/api/vendor/subscription/checkout`, {
+      let res = await safeFetchApi("/api/vendor/subscription/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // Transmit Better Auth cookies across origins
+        credentials: "include",
       });
 
-      // 2. Fallback: If Express server is unavailable or unauthorized, use Next.js internal checkout route
       if (!res.ok) {
         res = await fetch("/api/checkout_sessions", {
           method: "POST",

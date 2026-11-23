@@ -31,6 +31,7 @@ import { useCart, saveCartItems } from "@/hooks/use-cart";
 import { toast } from "@/components/ui/toast";
 import { useSession } from "@/lib/auth-client";
 import { getTodayInDhaka, isValidDeliveryDate } from "@/lib/delivery-date";
+import { safeFetchApi } from "@/lib/api-client";
 
 // ─── Dhaka Areas ─────────────────────────────────────────────────────────────
 const DHAKA_AREAS = [
@@ -277,7 +278,6 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       const payload = {
         fullName: form.fullName,
         phone: form.phone,
@@ -298,20 +298,12 @@ export default function CheckoutPage() {
         })),
       };
 
-      let response = await fetch(`${apiUrl}/api/orders`, {
+      const response = await safeFetchApi("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        response = await fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
 
       const data = (await response.json().catch(() => ({}))) as {
         order?: { id: string };

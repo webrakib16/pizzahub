@@ -34,6 +34,7 @@ import { useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
 import { addToCart } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
+import { safeFetchApi } from "@/lib/api-client";
 
 // ─── Customization Pricing Rules ──────────────────────────────────────────────
 const SIZE_OPTIONS = [
@@ -142,11 +143,7 @@ export default function MenuItemDetailPage({ params }: PageProps) {
     let isMounted = true;
     async function loadItem() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-        let res = await fetch(`${apiUrl}/api/menu/public/${id}`);
-        if (!res.ok) {
-          res = await fetch(`/api/menu/public/${id}`);
-        }
+        const res = await safeFetchApi(`/api/menu/public/${id}`);
         if (res.ok) {
           const data = await res.json();
           if (isMounted) {
@@ -156,14 +153,9 @@ export default function MenuItemDetailPage({ params }: PageProps) {
             try {
               let relatedList: DynamicItem[] = [];
               if (data.category) {
-                let relRes = await fetch(
-                  `${apiUrl}/api/menu/public?category=${encodeURIComponent(data.category)}&exclude=${encodeURIComponent(id)}&limit=3`
+                const relRes = await safeFetchApi(
+                  `/api/menu/public?category=${encodeURIComponent(data.category)}&exclude=${encodeURIComponent(id)}&limit=3`
                 );
-                if (!relRes.ok) {
-                  relRes = await fetch(
-                    `/api/menu/public?category=${encodeURIComponent(data.category)}&exclude=${encodeURIComponent(id)}&limit=3`
-                  );
-                }
                 if (relRes.ok) {
                   const relData = await relRes.json();
                   if (Array.isArray(relData)) {
@@ -174,14 +166,9 @@ export default function MenuItemDetailPage({ params }: PageProps) {
 
               // If fewer than 3 items in the same category, fetch other approved items across all vendors to show 3 cards
               if (relatedList.length < 3) {
-                let anyRes = await fetch(
-                  `${apiUrl}/api/menu/public?exclude=${encodeURIComponent(id)}&limit=6`
+                const anyRes = await safeFetchApi(
+                  `/api/menu/public?exclude=${encodeURIComponent(id)}&limit=6`
                 );
-                if (!anyRes.ok) {
-                  anyRes = await fetch(
-                    `/api/menu/public?exclude=${encodeURIComponent(id)}&limit=6`
-                  );
-                }
                 if (anyRes.ok) {
                   const anyData = await anyRes.json();
                   if (Array.isArray(anyData)) {
@@ -1053,9 +1040,8 @@ export default function MenuItemDetailPage({ params }: PageProps) {
                                   className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:border-orange-500/60 transition-colors cursor-pointer"
                                 >
                                   <Heart
-                                    className={`size-3.5 ${
-                                      isRelFav ? "fill-orange-500 text-orange-500" : "text-white"
-                                    }`}
+                                    className={`size-3.5 ${isRelFav ? "fill-orange-500 text-orange-500" : "text-white"
+                                      }`}
                                   />
                                 </button>
                               )}
