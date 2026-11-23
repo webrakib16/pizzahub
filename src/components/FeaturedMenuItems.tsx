@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { safeFetchApi } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
+import { toast } from "@/components/ui/toast";
 
 function PizzaSliceIcon({ className = "size-5 text-orange-500" }: { className?: string }) {
   return (
@@ -93,6 +95,8 @@ export interface FeaturedItemSlot {
 
 export default function FeaturedMenuItems() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
   const { isInWishlist, toggleWishlistItem } = useWishlist();
   const [activeRotation, setActiveRotation] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -176,7 +180,16 @@ export default function FeaturedMenuItems() {
   }, []);
 
   const toggleFavorite = (item: FeaturedItemData, e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
+    if (!isLoggedIn) {
+      toast.add({
+        title: "Please sign in to save your favorite pizzas!",
+        type: "info",
+      });
+      router.push("/sign-in");
+      return;
+    }
     toggleWishlistItem({
       id: item.id,
       name: item.name,
@@ -234,7 +247,7 @@ export default function FeaturedMenuItems() {
             Featured <span className="text-orange-500">Menu Items</span>
           </h2>
           <p className="text-zinc-400 text-sm md:text-base mt-2 max-w-2xl mx-auto">
-            Interactive 3D Carousel Cylinder. Click any side card to rotate it to front, or click the center card for full details.
+            Discover delicious pizzas, savory sides, and sweet treats, freshly crafted by our trusted restaurant partners.
           </p>
         </div>
 

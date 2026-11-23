@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { canonicalEmail, normalizeEmail } from "@/lib/email";
 
@@ -71,13 +71,14 @@ export const auth = betterAuth({
       create: {
         before: async (session) => {
           // Block check: if the user is blocked, reject session creation entirely.
-          // Better Auth stores user _id as a plain string in MongoDB (not ObjectId).
+          // Handle both id (string) and _id (ObjectId/string) in user collection
+          const userFilter = ObjectId.isValid(session.userId)
+            ? { $or: [{ id: session.userId }, { _id: new ObjectId(session.userId) }] }
+            : { id: session.userId };
+
           const userDoc = await db
             .collection("user")
-            .findOne(
-              { id: session.userId },
-              { projection: { blocked: 1 } }
-            );
+            .findOne(userFilter, { projection: { blocked: 1 } });
 
           if (userDoc?.blocked) {
             throw new APIError("FORBIDDEN", {

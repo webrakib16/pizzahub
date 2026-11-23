@@ -49,8 +49,7 @@ export default function SignUpPage() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Hydration er age submit disable — na hole native GET submit hoye
-    // password URL e chole jay ar account create hoy na.
+   
     const isMounted = useIsMounted();
 
     // Password Validation Rules
@@ -112,11 +111,10 @@ export default function SignUpPage() {
         setIsSubmitting(true);
 
         try {
-            // Email sob somoy trim + lowercase — sign-in page o same rule use kore.
-            // Ei email tai sign in korar somoy exactly dite hobe.
+           
             const email = formData.email.trim().toLowerCase();
 
-            // Better Auth -> MongoDB te asol user toiri hoy
+            // Better Auth -> Real user create on MongoDB
             const { data: signUpData, error: signUpError } = await signUp.email({
                 name: formData.name.trim(),
                 email,
@@ -136,8 +134,20 @@ export default function SignUpPage() {
                 return;
             }
 
-            // Learning/debug: sign-up response theke notun user er data console e dekhao
+            // sign-up console
             console.log("[PizzaHub] sign-up successful — user data:", signUpData?.user);
+
+            // Ensure an active session is established
+            if (!signUpData?.token) {
+                try {
+                    await signIn.email({
+                        email,
+                        password: formData.password,
+                    });
+                } catch {
+                    // Ignore error if already signed in
+                }
+            }
 
             const successTitle =
                 formData.role === "vendor"
@@ -153,14 +163,15 @@ export default function SignUpPage() {
 
             // Redirect according to role
             setTimeout(() => {
+                router.refresh();
                 if (formData.role === "vendor") {
-                    router.push("/vendor/dashboard");
+                    router.replace("/vendor/dashboard");
                 } else if (formData.role === "admin") {
-                    router.push("/admin/dashboard");
+                    router.replace("/admin/dashboard");
                 } else {
-                    router.push("/");
+                    router.replace("/");
                 }
-            }, 1200);
+            }, 1000);
         } catch {
             toast.add({
                 title: "An unexpected error occurred during registration. Please try again.",
@@ -188,7 +199,7 @@ export default function SignUpPage() {
 
     return (
         <main className="relative min-h-screen bg-[#080605] text-white">
-            {/* ===== Full page background photo ===== */}
+            {/* Full page background photo  */}
             <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
                 <Image
                     src="/assets/sign-up bg.jpg"

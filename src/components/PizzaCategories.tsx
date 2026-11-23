@@ -70,7 +70,7 @@ export default function PizzaCategories() {
             Explore Our <span className="text-orange-500">Menu</span>
           </h2>
           <p className="text-zinc-400 text-sm sm:text-base mt-4 max-w-2xl mx-auto leading-relaxed">
-            Latest approved creations lovingly crafted by partner restaurants — from artisan pizzas to indulgent sides.
+            Explore our handpicked favorites, featuring delicious flavors and freshly prepared specialties from top local restaurants.
           </p>
         </motion.div>
 

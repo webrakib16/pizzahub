@@ -74,7 +74,7 @@ export default function Navbar() {
   const isLoggedIn = Boolean(user);
   const isNotAdmin = user?.role !== "admin";
   const navLinks = getNavLinks(user?.role);
-  const wishlistHref = user?.role === "vendor" ? "/vendor/wishlist" : "/wishlist";
+  const wishlistHref = !isLoggedIn ? "/sign-in" : user?.role === "vendor" ? "/vendor/wishlist" : "/wishlist";
   // Floating Wishlist button shows on all pages (including Homepage) whenever user has 1+ items in wishlist (hidden for admins)
   const shouldShowFloatingWishlist = isNotAdmin && wishlistCount > 0;
 

@@ -24,9 +24,7 @@ function SignInContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Hydration er age submit button disable thake.
-  // Na hole React handler attach howar age click korle browser form ta
-  // native GET hisebe submit kore fele — password URL e chole jay ar account create hoy na.
+  
   const isMounted = useIsMounted();
 
   // Handle Input Changes
@@ -53,8 +51,7 @@ function SignInContent() {
 
     setIsSubmitting(true);
 
-    // Email always trimmed + lowercase — sign-up o same rule use kore,
-    // tai "Rafik@Gmail.com" ar "rafik@gmail.com" ek e account hisebe kaj korbe
+  
     const email = formData.email.trim().toLowerCase();
 
     try {
@@ -82,7 +79,7 @@ function SignInContent() {
         return;
       }
 
-      // Learning/debug: Better Auth sign-in response theke user object console e dekhao
+      
       console.log("[PizzaHub] sign-in successful — user data:", signInData?.user);
 
       // Role-aware redirect after sign-in
@@ -101,18 +98,22 @@ function SignInContent() {
         type: "success",
       });
       setTimeout(() => {
+        router.refresh();
         // If a valid callbackUrl exists (e.g. /menu/[id]), redirect back to it
         if (callbackUrl && callbackUrl.startsWith("/")) {
-          router.push(callbackUrl);
+          router.replace(callbackUrl);
           return;
         }
 
         if (role === "vendor") {
-          router.push("/vendor/dashboard");
+          router.replace("/vendor/dashboard");
         } else if (role === "admin") {
-          router.push("/admin/dashboard");
+          router.replace("/admin/dashboard");
+        } else if (role === "customer") {
+          router.replace("/");
         } else {
-          router.push("/");
+          // If role is missing from client signInData, redirect via /auth/redirect which queries the confirmed database role
+          router.replace("/auth/redirect");
         }
       }, 1000);
     } catch {

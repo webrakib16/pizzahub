@@ -9,33 +9,33 @@
  * 4. In all other cases (or if the custom URL fails/throws), it falls back to the internal Next.js App Router API route (/api/...).
  */
 export async function safeFetchApi(path: string, init?: RequestInit): Promise<Response> {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const customUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    const customUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
 
-  // If a remote production backend is provided (not localhost):
-  if (customUrl && !customUrl.includes("localhost") && !customUrl.includes("127.0.0.1")) {
-    try {
-      const res = await fetch(`${customUrl}${normalizedPath}`, init);
-      if (res.ok) return res;
-    } catch {
-      // Remote server unreachable, gracefully fallback to Next.js route
+    // If a remote production backend is provided (not localhost):
+    if (customUrl && !customUrl.includes("localhost") && !customUrl.includes("127.0.0.1")) {
+        try {
+            const res = await fetch(`${customUrl}${normalizedPath}`, init);
+            if (res.ok) return res;
+        } catch {
+            // Remote server unreachable, gracefully fallback to Next.js route
+        }
     }
-  }
 
-  // If developing locally on a PC where Express may be running on localhost:
-  if (
-    customUrl &&
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-  ) {
-    try {
-      const res = await fetch(`${customUrl}${normalizedPath}`, init);
-      if (res.ok) return res;
-    } catch {
-      // Local express offline, gracefully fallback to Next.js route
+    // If developing locally on a PC where Express may be running on localhost:
+    if (
+        customUrl &&
+        typeof window !== "undefined" &&
+        (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ) {
+        try {
+            const res = await fetch(`${customUrl}${normalizedPath}`, init);
+            if (res.ok) return res;
+        } catch {
+            // Local express offline, gracefully fallback to Next.js route
+        }
     }
-  }
 
-  // Default to internal Next.js App Router API route (always reliable on Vercel)
-  return fetch(normalizedPath, init);
+    // Default to internal Next.js App Router API route (always reliable on Vercel)
+    return fetch(normalizedPath, init);
 }
